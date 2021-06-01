@@ -1,5 +1,4 @@
 
-
 #lang play
 
 #|
@@ -44,6 +43,7 @@
   (lcal defs body)
   (mtch val cases))
 
+
 ; definiciones
 (deftype Def
   (dfine name val-expr) ; define
@@ -85,7 +85,19 @@
     [(list f args ...) ; same here
      (if (assq f *primitives*)
          (prim-app f (map parse args)) ; args is a list
-         (app (parse f) (map parse args)))]))
+         (cond
+           [(equal? f 'list) ( parse (convertir-a-cons args)) ] ;aqui chantamente si nos encontramos con un list lo convierte a cons 
+           [else  (app (parse f) (map parse args))])
+         )]))
+
+;convertir-a-cons: src -> src
+;recibe el sintaxis concreta una lista y la ocnvierte a una lista de cons en sintaxis concreta
+(define (convertir-a-cons args )
+  (if (empty? args)
+      (list 'Empty )
+      (let ([cosa1 (first args) ])
+        (list 'Cons cosa1  (convertir-a-cons (cdr args))))))
+
 
 ; parse-def :: s-expr -> Def
 (define(parse-def s-expr)
@@ -257,14 +269,7 @@ update-env! :: Sym Val Env -> Void
     (or      ,(lambda args (apply (lambda (x y) (or x y)) args)))))
 
 
-
-
-(define(run prog [flag ""])
-  (cond
-    [(equal? "ppwu" flag) (pretty-printing (interp (parse prog) empty-env ))]
-    [else  (interp (parse prog) empty-env) ]))
-
-
+;pretty-printing :: structV | Val -> string
 (define (pretty-printing l)
   (let (( name    (structV-name l))
         ( values  (structV-values l))
@@ -272,29 +277,38 @@ update-env! :: Sym Val Env -> Void
     (if (empty? values)  (format "{~a}" variant)  (format "{~a ~a}" variant (pretty-printing ( first  values))))))
 
 
-
-
-
-;; run :: s-expr -> number/boolean/procedura/struct
-;(define(run prog [flag ""])
-;  (interp (parse prog) empty-env))
-
-
-
-
-;(interp (parse e) empty-env)
-;(pretty-printing (structV 'Nat 'Succ (list (structV 'Nat 'Zero '()))))
-
-(run '{local {{datatype Nat 
-                  {Zero} 
-                  {Succ n}}
-                {define pred {fun {n} 
+(define(run prog [flag ""])
+  (let ([l `{local {{datatype List 
+                  {Empty} 
+                  {Cons n1 rec}
+                  {List m}}
+                {define lenght {fun {n} 
                                {match n
-                                 {case {Zero} => {Zero}}
-                                 {case {Succ m} => m}}}}}
-          {pred {Succ {Succ {Succ {Zero}}}}}} "ppwu")
+                                 {case {Empty} => 0 }
+                                 {case {Cons m1 m2 } => {+ 1 { lenght m2 } }}}}}} ,prog }])
+    (cond
+      [(equal? "ppwu" flag) (pretty-printing (interp (super-parse l) empty-env ))]
+      [else  (interp (super-parse l) empty-env) ])))
+          
+;super-parse:: src -> AST
+;funcion que me devuelve en suntaxis abstracto la creacion del tipo listas
+(define (super-parse l)
+  (lcal
+   (list (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))
+         (dfine 'length (fun '(n)
+                             (mtch (id 'n)
+                                   (list (cse (constrP 'Empty '()) (num 0))
+                                         (cse (constrP 'Cons (list (idP 'm1) (idP 'm2)))
+                                              (prim-app '+ (list (num 1) (app (id 'length) (list (id 'm2)))))))))))
+   (parse l)))
 
 
 
-;----------------------------------------------------------------------------
+
+
+(parse '{Cons 1 {Cons 2 {Empty}}})
+(parse '{list 1 2} )
+;(app (id 'Cons) (list (num 1) (app (id 'Cons) (list (num 2) (app (id 'Empty) '())))))
+
+;(define prog 1)
 
