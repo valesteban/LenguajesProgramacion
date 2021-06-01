@@ -1,0 +1,63 @@
+PARA VER SI ES UNA EXPRESION:
+
+(Expr? ( add (add ( num 1 )( num 2 )) ( num 3 ))) --------> puedo hacer esto para probar si esta bien una expresion
+
+
+TOKENIZER EN SCHEME:
+(list 1 2 3) ------> '(1 2 3)
+El ' esta diciendo no evalues, consideralo com un dato
+
+(second '(1 2 3))   -----> 2     si saco el segundo elemento es el 2
+
+'(define z 20)   -----> es un lista con 3 elemento
+
+(first '(define z 20))  ----> 'define
+
+
+WITH MULTIPLE
+ En el typedef puse que el with tenía una lista de pares (symbol expr)
+Usé una lista para guardar los pares símbolo-expresión
+Creo que la sintaxis es como {with {x 2} {y 3}}
+Entonces se parsearía como (with (list (x 2) (y 3)))
+Puede que haya una forma mas sencilla pero al menos me funcionó así, de ahi usar map o fold 
+
+
+una lista d epares
+
+poner un if dentro de un caso de match
+
+
+
+PROBAR SI EL INTERPRETE ESTÁ BIEN:
+(test (interp ( add (add ( num 1 )( num 2 )) ( num 3 ))) (num 6))  -------------> hacer esto para ver si el interprete funciona
+
+PARA VER SI LOSTIPOS DE LAS EXPRESSIONES ESTAN BIEN:
+Tengo una función que verifica si un operador es numérico o es booleano. 
+Luego en el interpreter tengo condicionales que verifican que si un operador numérico/booleano 
+tiene un tipo de dato que no corresponde, salta un error
+
+
+TYPER CHECKER EN INTERP
+----------------------PARETT 2-------------------------------------------------------------------
+-Alguien va en la parte 2 de la tarea?, No cacho si es necesario hacer que fundef tenga un argumento 
+más en su definición (osea el tipo además de el nombre, argumentos y expresión)
+-Yo lo hice poniendole
+
+-Y se supone que los tests de la parte 1 deben seguir igual?
+-Se supone que si
+Cuando yo pregunte el aux me dijo que las partes no se afectaban entre si
+Algo por el estilo
+Asi que dijo que no deberian de haber problemas entre tests
+
+
+alguien hizo el typecheck dentro del with?
+hay que hacer como ambientes de tipo o q onda?
+al menos yo lo hice como dices
+
+------------------------------------------------------------------------------------------------------
+
+(deftype arg
+ [arg x type val])
+
+-preguntarle al aux si puedo tener uno nomas ?? sin importar el bnf
+(si fuese como yo quiero solo agregar arg)

@@ -1,0 +1,5 @@
+#lang play
+(require "t2_parte2_estonoentregar.rkt")
+
+
+(parse-expr '(with ((x : Num 5) (y : Num 10)) (+ x y)))

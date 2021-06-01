@@ -1,0 +1,69 @@
+#lang play
+> (run '{Empty? {Empty}})
+#t
+> (run '{List? {Cons 1 2}})
+#t
+>(run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}})
+3
+
+(parse '{local {{datatype List 
+                  {Empty} 
+                  {Cons n1 rec}}}
+          {List? {Empty}}})
+
+(lcal 
+  (list (datatype 'List 
+                   (list (variant 'Empty '()) 
+                         (variant 'Cons '(n1 rec))))) 
+        ---
+   )
+)
+
+#aesi me debe quedar
+-----------LISTAS----------------
+(lcal 
+ (list (datatype 'List 
+                  (list (variant 'Empty '()) 
+                        (variant 'Cons '(n1 rec))))) 
+
+        (dfine 'lenght (fun '(n) 
+                        (mtch (id 'n) 
+                           (list (cse (constrP 'Empty '()) (app (id 'Zero) '())) 
+                                 (cse (constrP 'Cons (list (idP 'm))) (id 'm)))))))
+       ---)
+
+---------FUNCION LENGHT------------
+(parse '{local {{datatype List 
+                  {Empty} 
+                  {Cons n1 rec}
+                  {List m}}
+                {define lenght {fun {n} 
+                               {match n
+                                 {case {Empty} => 0 }
+                                 {case {Cons m1 m2 } => {+ 1 { lenght m2 } }}}}}}
+          {lenght {Cons 1{ Cons 2 {Cons 4 {Empty }}}}}} )
+
+(lcal (list  (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))  (dfine   'lenght   (fun    '(n)    (mtch     (id 'n)     (list      (cse (constrP 'Empty '()) (num 0))      (cse (constrP 'Cons (list (idP 'm1) (idP 'm2))) (prim-app '+ (list (num 1) (app (id 'lenght) (list (id 'm2))))))))))) (app (id 'lenght) (list (app (id 'Cons) (list (num 1) (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (num 4) (app (id 'Empty) '()))))))))))
+(lcal (list  (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))  (dfine   'lenght   (fun    '(n)    (mtch     (id 'n)     (list      (cse (constrP 'Empty '()) (num 0))      (cse (constrP 'Cons (list (idP 'm1) (idP 'm2))) (prim-app '+ (list (num 1) (app (id 'lenght) (list (id 'm2))))))))))) (app (id 'length) (list (app (id 'Cons) (list (num 1) (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (num 3) (app (id 'Empty) '()))))))))))
+
+-------------------------------------------------------------------------------------------------------
+
+(define(run prog [flag ""])
+  (cond
+    [(equal? "ppwu" flag) (pretty-printing (interp (super-parse prog) empty-env ))]
+    [else  (interp (super-parse prog) empty-env) ]))
+
+
+
+
+(define (super-parse l)
+  (lcal
+   (list (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))
+         (dfine 'length (fun '(n)(mtch (id 'n)
+                                       (list (cse (constrP 'Empty '()) (num 0))
+                                             (cse (constrP 'Cons (list (idP 'm1) (idP 'm2))) (prim-app '+ (list (num 1) (app (id 'length) (list (id 'm2)))))))))))
+ (parse l)))
+
+
+--------------------------------------------------------------------
+ 
