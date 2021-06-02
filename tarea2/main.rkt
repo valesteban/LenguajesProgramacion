@@ -134,11 +134,7 @@
     [(? symbol?) #t]
     [(? boolean?) #t]
     [else #f]))
-;largo :: List/src -> number
-(define (largo lst)
-  (cond
-    [(empty? lst)  0]
-    [(cons? lst)   (+ 1 (length (rest lst)))]))
+
 
 ;conv:: src -> src
 ;recibe el sintaxis concreta una lista y la ocnvierte a una lista de cons en sintaxis concreta
@@ -186,7 +182,7 @@
        (interp body (extend-env ids arg-vals env)))]
     ; application
     [(app fun-expr arg-expr-list)
-     ((interp fun-expr env)
+     list((interp fun-expr env)
       (map (λ (a) (interp a env)) arg-expr-list))]
     ; primitive application
     [(prim-app prim arg-expr-list)
@@ -311,14 +307,37 @@ update-env! :: Sym Val Env -> Void
     (or      ,(lambda args (apply (lambda (x y) (or x y)) args)))))
 
 
+
+
+
+;;;
+
+
+(define (largo lst)
+  (cond
+    [(empty? lst)  0]
+    [(cons? lst)   (+ 1 (length (rest lst)))]))
+
+
 ;pretty-printing :: structV | Val -> string
+;funcion que toma unan structira y retorna un string ma sbonito para verlo
 (define (pretty-printing l)
-  (let (( name    (structV-name l))
-        ( values  (structV-values l))
-        ( variant (structV-variant l)))
-    (if (empty? values)  (format "{~a}" variant)  (format "{~a ~a}" variant (pretty-printing ( first  values))))))
+  (if (or (number? l) (boolean? l) (symbol? l))
+      l
+      (let (( name    (structV-name l))
+            ( values  (structV-values l))
+            ( variant (structV-variant l))
+            ( largo-val (largo  (structV-values l) )))
+        (if (empty? values)  (format "{~a}" variant) (cond
+                                                       [(= largo-val  1)   (format "{~a ~a}" variant (pretty-printing ( first  values)))  ]
+                                                       [else (format "{~a ~a ~a}" variant  (pretty-printing (first values )) (pretty-printing ( second  values)))      ])))))
 
 
+
+
+
+;run :: src -> structV | val | string
+;parsea, interpreta y convierte sructuras a valores string mas amigables
 (define(run prog [flag ""])
   (let ([l `{local {{datatype List 
                   {Empty} 
@@ -330,45 +349,37 @@ update-env! :: Sym Val Env -> Void
     (let ([val (interp (parse l) empty-env ) ])
       (cond
         [(equal? "ppwu" flag) (if (number? val )  val (pretty-printing val ))]
-      ;  [(equal? "pp" flag) ]
+        [(equal? "pp" flag) (if (number? val )  val (cl (prr val )))]
         [else  val ]))))
 
+;prr :: structV -> cons 
+;funcion que transforma nustras estructuras de nuestro lenguaje a un cons de racket
+(define (prr l)
+  (if (or (number? l) (boolean? l) (symbol? l))
+      l
+      (let (( name    (structV-name l))
+            ( values  (structV-values l))
+            ( variant (structV-variant l))
+            ( largo-val (largo  (structV-values l) )))
+        (if (empty? values)  '()  (cond
+                                           [(= largo-val  1)   (cons  (prr ( first  values)))  ]
+                                           [else (cons (prr (first values )) (prr ( second  values)) )   ])))))
+
+;cl :: cons -> String
+;funcin que transforma de cons de racket a una lista bonita con la ayuda de la funcino rr, esta solo se encarga de poner un list sie s necesario
+(define (cl b)
+  (format "{list ~a}" (tt b))) ;(1 (2 3))
 
 
+;tt :: List|val -> String
+;funcion que recibe una lista o valor y si es un valaor lo retorna pero sii es una lista llama a la anterir para ver que hacer con ella
+(define (tt b)
+  (if (empty? b)
+      ""
+      (let ([primval (first b) ])
+        (cond
+          [(list? primval )  (format "~a ~a"(cl primval) (tt (cdr b))) ]
+          [else (format "~a ~a"primval (tt (cdr b))) ]))
+  ))
 
-
-;super-parse:: src -> AST
-;funcion que me devuelve en suntaxis abstracto la creacion del tipo listas
-(define (super-parse l)
-  (lcal
-   (list (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))
-         (dfine 'length (fun '(n)
-                             (mtch (id 'n)
-                                   (list (cse (constrP 'Empty '()) (num 0))
-                                         (cse (constrP 'Cons (list (idP 'm1) (idP 'm2)))
-                                              (prim-app '+ (list (num 1) (app (id 'length) (list (id 'm2)))))))))))
-   (parse l)))
-
-;(convertir-a-cons {list 2 {list 4 5} 6})
-(define c1 (list 2 (list 4 5) 6))
-(define c2 (cons 2 (cons (cons 4 (cons 5 '())) (cons 6 '() ))))
-(define uno '(list 2 (list 4 5) 6))
-(define dos '(cons 2 (cons (cons 4 (cons 5 (Empty))) (cons 6 (Empty) ))))
-;(parse dos)
-;(parse uno)
-
-
-
-
-;(parse '{match (Cons 1 (Cons (Cons 2 (Cons 3 (Empty))) (Cons 4 (Empty) )))
-;          {case (Cons a (Cons (Cons b (Cons c (Empty))) (Cons d (Empty) ))) => c}})
-
-
-;(parse '{match {list 1 {list 2 3} 4}
-;         {case {list a {list b c} d} => c}})
-
-;(parse '{list a {list b c} d})
-;(parse '(Cons a (Cons (Cons b (Cons c (Empty))) (Cons d (Empty) ))))
-
-
-(run '{list 1 3} )
+(run '{Cons 1 {Cons 2 {Empty}}} "ppwu") ;"{Cons 1 {Cons 2 {Empty}}}")
