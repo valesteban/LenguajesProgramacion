@@ -47,6 +47,24 @@
 (lcal (list  (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))  (dfine   'lenght   (fun    '(n)    (mtch     (id 'n)     (list      (cse (constrP 'Empty '()) (num 0))      (cse (constrP 'Cons (list (idP 'm1) (idP 'm2))) (prim-app '+ (list (num 1) (app (id 'lenght) (list (id 'm2))))))))))) (app (id 'length) (list (app (id 'Cons) (list (num 1) (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (num 3) (app (id 'Empty) '()))))))))))
 
 -------------------------------------------------------------------------------------------------------
+que si lo hago alprincipio con '{local {{datatype List
+                 {Empty}
+                 {Cons n1 rec}}
+               {define lenght {fun {n}
+                              {match n
+                                {case {Empty} => 0 }
+                                {case {Cons m1 m2 } => {+ 1 { lenght m2 } }}}}}} {QUE TENDRIA Q PONER AQUI})  y como q despues tendria q a lo otro como ponerle el ambiente de esta
+
+
+
+
+
+
+
+
+
+
+
 
 (define(run prog [flag ""])
   (cond
@@ -66,4 +84,62 @@
 
 
 --------------------------------------------------------------------
- 
+ si lo  de preety recibiera tmb numeros 
+
+
+;pretty-printing :: structV | number -> string
+(define (pretty-printing l)
+  (cond
+    [( structV? l)
+                (let (( name    (structV-name l))
+                      ( values  (structV-values l))
+                      ( variant (structV-variant l)))
+                  (if (empty? values)  (format "{~a}" variant)  (format "{~a ~a}" variant (pretty-printing ( first  values)))))]
+    [else l]))
+
+--------------------------------------------------------------------
+(mtch
+ (app (id 'Cons) (list (num 1) (app (id 'Cons) (list (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (num 3) (app (id 'Empty) '()))))) (app (id 'Cons) (list (num 4) (app (id 'Empty) '())))))))
+ (list
+  (cse
+   (constrP 'Cons (list (idP 'a) (constrP 'Cons (list (constrP 'Cons (list (idP 'b) (constrP 'Cons (list (idP 'c) (constrP 'Empty '()))))) (constrP 'Cons (list (idP 'd) (constrP 'Empty '())))))))
+   (id 'c))))
+
+(mtch  (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (app (id 'Cons) (list (num 4) (app (id 'Cons) (list (num 5) (app (id 'Empty) '()))))) (app (id 'Cons) (list (num 6) (app (id 'Empty) '())))))))
+ (list (cse (constrP 'Cons (list (idP 'list) (constrP 'Cons (list (idP 'a) (constrP 'Cons (list (constrP 'list (list (idP 'b) (idP 'c))) (constrP 'Cons (list (idP 'd) (constrP 'Empty '()))))))))) (id 'c))))
+
+
+
+
+
+;convertir-a-cons: src -> src
+;recibe el sintaxis concreta una lista y la ocnvierte a una lista de cons en sintaxis concreta
+(define (convertir-a-cons args )
+  (if (empty? args)
+      (list 'Empty )
+      (let ([cosa1 (first args) ])
+        (list 'Cons cosa1  (convertir-a-cons (cdr args))))))
+
+
+;conv
+(define (conv p)
+  (if (empty? p)
+      (list 'Empty )
+      (let ([val (first p) ])
+        (cond
+          [ (equal? 'list val) (list 'Cons (second p)(conv (cdr  (cdr p))))     ]
+          [ else  (list 'Cons val  (conv (cdr p))) ])
+        )))
+
+
+
+
+
+
+
+
+
+
+
+
+

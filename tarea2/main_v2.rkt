@@ -1,9 +1,5 @@
-
 #lang play
-
 (print-only-errors #t)
-
-
 #|
 <expr> ::= <num>
          | <bool>
@@ -46,7 +42,6 @@
   (lcal defs body)
   (mtch val cases))
 
-
 ; definiciones
 (deftype Def
   (dfine name val-expr) ; define
@@ -88,19 +83,7 @@
     [(list f args ...) ; same here
      (if (assq f *primitives*)
          (prim-app f (map parse args)) ; args is a list
-         (cond
-           [(equal? f 'list) ( parse (convertir-a-cons  args)) ] ;aqui chantamente si nos encontramos con un list lo convierte a cons 
-           [else  (app (parse f) (map parse args))])
-         )]))
-
-;convertir-a-cons: src -> src
-;recibe el sintaxis concreta una lista y la ocnvierte a una lista de cons en sintaxis concreta
-(define (convertir-a-cons args )
-  (if (empty? args)
-      (list 'Empty )
-      (let ([cosa1 (first args) ])
-        (list 'Cons cosa1  (convertir-a-cons (cdr args))))))
-
+         (app (parse f) (map parse args)))]))
 
 ; parse-def :: s-expr -> Def
 (define(parse-def s-expr)
@@ -116,46 +99,7 @@
 ; parse-case :: sexpr -> Case
 (define(parse-case c)
   (match c
-  ;  [(list 'case pattern => body)  (cse (parse-pattern   (convertir-a-cons pattern )) (parse body)) ]))
-  ;  [(list 'case pattern => body) (cse (parse-pattern  pattern ) (parse body))])) ;est ee sel del principio
-    [(list 'case pattern => body) (cond
-                                    [(is?  pattern) (cse (parse-pattern  pattern ) (parse body)) ]
-                                    [ (equal? (first pattern) 'list)(cse (parse-pattern  (conv pattern) ) (parse body))   ]
-                                    [else   (cse (parse-pattern  pattern ) (parse body))])]))
-
-
-   ; [(list 'case pattern => body)   pattern ]))
-
-;is? :: src -> #f|#t
-;si algo no es una lista retorna  true
-(define (is? l)
-  (match l
-    [(? number?) #t]
-    [(? symbol?) #t]
-    [(? boolean?) #t]
-    [else #f]))
-;largo :: List/src -> number
-(define (largo lst)
-  (cond
-    [(empty? lst)  0]
-    [(cons? lst)   (+ 1 (length (rest lst)))]))
-
-;conv:: src -> src
-;recibe el sintaxis concreta una lista y la ocnvierte a una lista de cons en sintaxis concreta
-(define (conv p)
-  (cond
-    [(empty? p)  (list 'Empty )  ]
-    [(symbol? p)  p]
-    [(let ([val (first p) ])
-        (cond
-          [ (equal? 'list val) (list 'Cons (conv (second p))(conv (cdr  (cdr p))))     ]
-          [ else  (list 'Cons (conv val)  (conv (cdr p))) ])
-        )]
-    )
-  )
-
-
-
+    [(list 'case pattern => body) (cse (parse-pattern pattern) (parse body))]))
 
 ; parse-pattern :: sexpr -> Pattern
 (define(parse-pattern p)
@@ -311,7 +255,12 @@ update-env! :: Sym Val Env -> Void
     (or      ,(lambda args (apply (lambda (x y) (or x y)) args)))))
 
 
-;pretty-printing :: structV | Val -> string
+
+
+;; run :: s-expr -> number/boolean/procedura/struct
+;(define(run prog [flag ""])
+;  (interp (parse prog) empty-env))
+
 (define (pretty-printing l)
   (let (( name    (structV-name l))
         ( values  (structV-values l))
@@ -327,48 +276,9 @@ update-env! :: Sym Val Env -> Void
                                {match n
                                  {case {Empty} => 0 }
                                  {case {Cons m1 m2 } => {+ 1 { length m2 } }}}}}} ,prog }])
-    (let ([val (interp (parse l) empty-env ) ])
-      (cond
-        [(equal? "ppwu" flag) (if (number? val )  val (pretty-printing val ))]
-      ;  [(equal? "pp" flag) ]
-        [else  val ]))))
+    (cond
+      [(equal? "ppwu" flag) (pretty-printing (interp (parse l) empty-env ))]
+      [else  (interp (parse l) empty-env) ])))
 
 
-
-
-
-;super-parse:: src -> AST
-;funcion que me devuelve en suntaxis abstracto la creacion del tipo listas
-(define (super-parse l)
-  (lcal
-   (list (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))
-         (dfine 'length (fun '(n)
-                             (mtch (id 'n)
-                                   (list (cse (constrP 'Empty '()) (num 0))
-                                         (cse (constrP 'Cons (list (idP 'm1) (idP 'm2)))
-                                              (prim-app '+ (list (num 1) (app (id 'length) (list (id 'm2)))))))))))
-   (parse l)))
-
-;(convertir-a-cons {list 2 {list 4 5} 6})
-(define c1 (list 2 (list 4 5) 6))
-(define c2 (cons 2 (cons (cons 4 (cons 5 '())) (cons 6 '() ))))
-(define uno '(list 2 (list 4 5) 6))
-(define dos '(cons 2 (cons (cons 4 (cons 5 (Empty))) (cons 6 (Empty) ))))
-;(parse dos)
-;(parse uno)
-
-
-
-
-;(parse '{match (Cons 1 (Cons (Cons 2 (Cons 3 (Empty))) (Cons 4 (Empty) )))
-;          {case (Cons a (Cons (Cons b (Cons c (Empty))) (Cons d (Empty) ))) => c}})
-
-
-;(parse '{match {list 1 {list 2 3} 4}
-;         {case {list a {list b c} d} => c}})
-
-;(parse '{list a {list b c} d})
-;(parse '(Cons a (Cons (Cons b (Cons c (Empty))) (Cons d (Empty) ))))
-
-
-(run '{list 1 3} )
+(run '{List? {Cons 1 2}})
