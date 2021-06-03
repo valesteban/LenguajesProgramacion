@@ -152,6 +152,12 @@
 
 
 
+;funcion-elegidora:: List[expr] -> List[expr y o valores]
+;aqui la funcion elegira al elemento de la lista lo interpretamos o lo cambiamos a exprV
+;(define (funcion-elegidora list) ;[list (num 1 ) (prim-ap ...)]  
+
+                                                 
+
 
 ; parse-pattern :: sexpr -> Pattern
 (define(parse-pattern p)
@@ -169,25 +175,43 @@
     [(num n) n]
     [(bool b) b]
     [(str s) s]
-    ; conditional
+    ; conditional 
     [(ifc c t f)
      (if (interp c env)
          (interp t env)
          (interp f env))]
     ; identifier
-    [(id x) (env-lookup x env)]
+    [(id x) (strict(env-lookup x env))]  ; aca va  abuscar el id al ambiente y si se encuentar con una exprV la tiene que evaluar
     ; function (notice the meta interpretation)
     [(fun ids body)
      (λ (arg-vals)
        (interp body (extend-env ids arg-vals env)))]
+    ; (clousureV ids body env)]
     ; application
-    [(app fun-expr arg-expr-list)
-     list((interp fun-expr env)
-      (map (λ (a) (interp a env)) arg-expr-list))]
+    [(app fun-expr arg-expr-list)   ;  arg-expr-list -> (list (num 1) (prim-ap ....))
+     (cond
+       [ ( id? fun-expr)    ((interp fun-expr env)
+                             (map (λ (a) (interp a env)) arg-expr-list))]
+       [ (fun? fun-expr) (def (clousureV arg body fenv)  (creacl fun-expr env));(strict (interp fun-expr env)))  (creacl funcion env)
+                               (def new-arg-expr-list (guarda-list-expr arg arg-expr-list fenv) ) ; lista sera el valor  o exprV dependiendo de lo q se dijo
+                               (def new-list-ids (sacar arg)) ;(list x y z ...)
+                               (def new-env  (extend-env new-list-ids
+                                                         new-arg-expr-list
+                                                         fenv) )
+                               (interp body new-env)])]
+       
+     ; (def (clousureV arg body fenv) (strict (interp fun-expr env)))
+      ;(def new-arg-expr-list (guarda-list-expr arg arg-expr-list fenv) ) ; lista sera el valor  o exprV dependiendo de lo q se dijo
+      ;(def new-list-ids (sacar arg)) ;(list x y z ...)
+      ;(def new-env  (extend-env new-list-ids
+      ;                          new-arg-expr-list
+      ;                          fenv) )   
+      ;(interp body new-env)] ;esto desencadena q lo q este aca se interprete
+
     ; primitive application
     [(prim-app prim arg-expr-list)
      (apply (cadr (assq prim *primitives*))
-            (map (λ (a) (interp a env)) arg-expr-list))]
+            (map (λ (a) (strict (interp a env))) arg-expr-list))]  ;en caso que una  suma , resta, ... uno de sus arg sean exprV
     ; local definitions
     [(lcal defs body)
      (def new-env (extend-env '() '() env))
@@ -197,8 +221,49 @@
     [(mtch expr cases)
      (def value-matched (interp expr env))
      (def (cons alist body) (find-first-matching-case value-matched cases))
-     (interp body (extend-env (map car alist) (map cdr alist) env))]))
+     (interp body (extend-env (map car alist) (map cdr alist) env))]
+    )
+)
 
+;sacar :: List[symbol and list] -> List[symbol]
+;saca el valor de una list(list x (list 'lazy y)) -> (list x y)
+(define (sacar l)
+  (if (empty? l)
+      '()
+      (let ([ val (car l) ])
+        (cond
+          [(symbol? val ) (cons val (sacar  (cdr l)))]
+          [else           (cons (second val) (sacar  (cdr l)))])))
+  )
+
+;crea clausura para funciones
+(define (creacl funcion env)    ;(fun ids body)
+     (clousureV (fun-id funcion )
+                (fun-body funcion)
+                env))
+
+
+;funcion encargada de extender los ambientes, guarda-list-expr se encarga de ver como se guaradn estos valores si es un valor numerico o un exprpV
+;(define (funcion-extiende arg arg-expr-list fenv)   ;arg = (list x (lazy y))     ;arg-expr-list = (list (num 1 ) (prim-app ...))
+;  (let ([ id   (car arg)  ]
+;        [  val (car arg-expr-list )])
+;    (cond
+;      [(symbol? id)  (extend-env id val fenv)     ];(funcion-extiende (cdr arg) ( cdr arg-expr-list) (extend-env id val fenv))]
+;      [ else       (extend-env (second id ) val fenv)]; ((funcion-extiende (cdr arg) ( cdr arg-expr-list) (extend-env id (second val) fenv)))]
+;)))
+
+;guarda-list-expr :: List[arg] List[expr] -> List[expr y exprV]
+;funcion encargada de dejar en la lista el valor numerico o la expresion/contrato, es asi como se van a guardar en el ambiente
+(define (guarda-list-expr arg arg-expr-list fenv)     ;arg = (list x (lazy y))
+  (if (empty? arg)                                    ;arg-expr-list = (list (num 1 ) (prim-app ...))
+      '()
+      (let ([id (car arg)  ]
+            [val(car arg-expr-list) ])
+        (cond
+          [(symbol? id) (cons (interp val fenv)   (guarda-list-expr (cdr arg ) (cdr arg-expr-list) fenv)  )   ]
+          [ else   (cons (exprV val fenv (box #f)) (guarda-list-expr (cdr arg ) (cdr arg-expr-list) fenv)  )    ])
+        
+  ))) 
 ; interp-def :: Def Env -> Void
 (define(interp-def d env)
   (match d
@@ -380,6 +445,22 @@ update-env! :: Sym Val Env -> Void
         (cond
           [(list? primval )  (format "~a ~a"(cl primval) (tt (cdr b))) ]
           [else (format "~a ~a"primval (tt (cdr b))) ]))
-  ))
+      )
+  )
 
-(run '{Cons 1 {Cons 2 {Empty}}} "ppwu") ;"{Cons 1 {Cons 2 {Empty}}}")
+
+(deftype Exprg
+  [clousureV arg body env]
+  [exprV expr env cache]) ;"promesa" estos expresiones la guardara el ambiente
+
+;strict :: val -> val
+;funcion que se encarga de cumplir las promesaa, es decir aqui se evaluan finalmente las expresiones a usar
+(define (strict val)
+  (match val
+    [(exprV expr env cache )
+     (if (unbox cache)
+         (begin (unbox cache))
+         (let ([ inval (strict (interp expr env))])
+           (set-box! cache inval)
+           inval))]
+    [else val]))
