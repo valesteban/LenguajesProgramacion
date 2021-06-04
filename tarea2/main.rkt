@@ -190,23 +190,20 @@
     ; application
     [(app fun-expr arg-expr-list)   ;  arg-expr-list -> (list (num 1) (prim-ap ....))
      (cond
-       [ ( id? fun-expr)    ((interp fun-expr env)
-                             (map (λ (a) (interp a env)) arg-expr-list))]
        [ (fun? fun-expr) (def (clousureV arg body fenv)  (creacl fun-expr env));(strict (interp fun-expr env)))  (creacl funcion env)
                                (def new-arg-expr-list (guarda-list-expr arg arg-expr-list fenv) ) ; lista sera el valor  o exprV dependiendo de lo q se dijo
                                (def new-list-ids (sacar arg)) ;(list x y z ...)
                                (def new-env  (extend-env new-list-ids
                                                          new-arg-expr-list
                                                          fenv) )
-                               (interp body new-env)])]
+                               (interp body new-env)]
+       [ ( id? fun-expr) env])];(env-lookup  fun-expr env )])]
+       ;  (def lista-arg-datatype (funcio-arregla arg-expr-list (lookup-env fun-expr ) env))
+         ;  ((interp fun-expr env)
+                           ;  (map (λ (a) (interp a env)) arg-expr-list))]
+      ;)]
+    
        
-     ; (def (clousureV arg body fenv) (strict (interp fun-expr env)))
-      ;(def new-arg-expr-list (guarda-list-expr arg arg-expr-list fenv) ) ; lista sera el valor  o exprV dependiendo de lo q se dijo
-      ;(def new-list-ids (sacar arg)) ;(list x y z ...)
-      ;(def new-env  (extend-env new-list-ids
-      ;                          new-arg-expr-list
-      ;                          fenv) )   
-      ;(interp body new-env)] ;esto desencadena q lo q este aca se interprete
 
     ; primitive application
     [(prim-app prim arg-expr-list)
@@ -464,3 +461,13 @@ update-env! :: Sym Val Env -> Void
            (set-box! cache inval)
            inval))]
     [else val]))
+
+
+(parse '{local {{datatype T 
+                  {C  a}}
+                {define x {C {/ 1 1}}}}
+          {T? x}})
+(run '{local {{datatype T 
+                  {C  a}}
+                {define x {C {/ 1 1}}}}
+          {T? x}})
