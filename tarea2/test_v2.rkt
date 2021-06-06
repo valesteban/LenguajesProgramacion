@@ -174,7 +174,7 @@
 (test (run '{Cons 1 {Cons {Cons 2 3 } {Empty}}}) (structV 'List 'Cons (list 1 (structV 'List 'Cons (list (structV 'List 'Cons '(2 3)) (structV 'List 'Empty '()))))))
 (test (run '{Cons 1 {Cons {Cons 2 3 }}} "ppwu")  "{Cons 1 {Cons {Cons 2 3}}}" )
 
-;parte 4 poner vbonitas las listas
+;parte 4 poner bonitas las listas
 
 (test (run '{list 1 4 6} "pp") "{list 1 4 6 }")
 (test (run '{list} "pp") "{list }")
@@ -185,23 +185,16 @@
 ;IMPLEMENTACION LAZY
 (test (run '{{fun {x  {lazy y}} x} 1 {/ 1 0}}) 1)
 
-; (test/exn (run '{{fun {x  y} x} 1 {/ 1 0}}) "/: division by zero")    PORQUE ME ALEGA????????????????
+(test/exn (run '{{fun {x  y} x} 1 {/ 1 0}}) "division by zero")
+
 (test (run '{local {{datatype T 
                   {C {lazy a}}}
                 {define x {C {/ 1 0}}}}
           {T? x}}) #t)
 
-;FALTA VER ESTOS CASOS---------------------------
 
-(run '{local {{datatype T 
-                  {C {lazy a}}}
-                {define x {C {/ 1 0}}}}
-          {match x
-            {case {C a} => a}}})
 
-;(run '{local {{datatype T {C a {lazy b}}}
-;                {define x {C  0 {+ 1 2}}}}
-;               x} "pp")
+
 
 
 ;COSAS QUE DESPUES TENGO QUE ELIMINAR

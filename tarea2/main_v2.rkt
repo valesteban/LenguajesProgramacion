@@ -180,15 +180,7 @@
         (def ammmm (cdr arg-vals))
         (def new-arg   (map (λ (a) (interp a ammmm)) (car arg-vals))    )
         (interp body (extend-env ids new-arg env)))]
-     ;(λ (arg-vals)      (map (λ (a) (interp a env)) (first arg-vals)))] ;   (map (λ (a) (interp (first a) (second a))) arg-vals))]
-    ; (λ (arg-vals)
-      ; (def new-arg   (map (λ (a) (interp a env)) (car arg-vals))    )
-       ;(interp body (extend-env ids new-arg env)))]
-    ;  (λ (a)  (cdr a)))  ]
-     ;  (interp body 
-     ;  (λ (arg-vals) 
-     ;  (interp body (extend-env ids  (map (λ (a b) (interp a b)) (first arg-vals) (second arg-vals)) env)))]
-    ; (clousureV ids body env)]
+   
     ; application
     [(app fun-expr arg-expr-list)   ;  arg-expr-list -> (list (num 1) (prim-ap ....))
      (cond
@@ -213,11 +205,34 @@
      (for-each (λ (d) (interp-def d new-env)) defs)
      (interp body new-env)]
     ; pattern matching
+
+
     [(mtch expr cases)
      (def value-matched (interp expr env))
-     (def (cons alist body) (find-first-matching-case value-matched cases))
-     (interp body (extend-env (map car alist) (map cdr alist) env))]
-    )
+ (cond
+       [ (structV? value-matched )
+         (cond
+           [(empty? (structV-values value-matched))
+            (def (cons alist body) (find-first-matching-case value-matched cases))
+            (interp body (extend-env (map car alist) (map cdr alist) env))]
+           [(Expr? (first (structV-values value-matched)))
+            (def new-struct (structV(structV-name value-matched)(structV-variant value-matched)(map (lambda (a) (interp a env )) (structV-values value-matched) )))
+            (def (cons alist body) (find-first-matching-case new-struct cases))
+            (interp body (extend-env (map car alist) (map cdr alist) env))]
+           [else ;(and (> (largo (structV-values value-matched ) )1 ) (structV? (second (structV-values value-matched ))))  ;caso recursivo
+            (def (cons alist body) (find-first-matching-case value-matched cases))
+            (interp body (extend-env (map car alist) (map cdr alist) env))]
+           )]
+       [else
+        (def (cons alist body) (find-first-matching-case value-matched cases))
+          (interp body (extend-env (map car alist) (map cdr alist) env))])])
+
+ 
+     ;(def new-struct (structV  (structV-name value-matched)  (structV-variant value-matched)  (map (lambda (a) interp a env ) (structV-values value-matched) ) ))
+   
+  ;   (def (cons alist body) (find-first-matching-case value-matched cases))
+  ;   (interp body (extend-env (map car alist) (map cdr alist) env))]
+    
 )
 
 ;sacar :: List[symbol and list] -> List[symbol]
@@ -375,7 +390,9 @@ update-env! :: Sym Val Env -> Void
     (%       ,(lambda args (apply modulo args)))
     (odd?    ,(lambda args (apply odd? args)))
     (even?   ,(lambda args (apply even? args)))
-    (/       ,(lambda args (apply / args)))
+(/       ,(lambda args (if (equal? (second args) 0)
+                               (error "division by zero")
+                               (apply / args))))
     (=       ,(lambda args (apply = args)))
     (<       ,(lambda args (apply < args)))
     (<=      ,(lambda args (apply <= args)))
@@ -430,9 +447,30 @@ update-env! :: Sym Val Env -> Void
     (let ([val (interp (parse l) empty-env ) ])
       (cond
         [(equal? "ppwu" flag) (if (number? val )  val (pretty-printing val ))]
-        [(equal? "pp" flag) (if (number? val )  val (cl (prr val )))]
+        [(equal? "pp" flag)
+         (cond
+           [(number? val )  val]
+           [(equal? (structV-name val)'List) (listasbonitas (prr val ))]
+           [else (format "{ ~a ~a } "(structV-variant val)(tt2 (structV-values val) (structV-variant val) ))])]
         [else  val ])))
  )
+
+
+
+;tt :: List|val -> String
+;funcion que transforma una struct en string bonito
+(define (tt2 b nombre)
+  (if (empty? b)
+      ""
+      (let ([primval (first b) ])
+        (cond
+          [(list? primval )  (format "~a ~a"(agrega primval nombre) (tt (cdr b))) ]
+          [else (format "~a ~a"primval (tt (cdr b))) ]))
+      )
+  )
+;en caso de ser recursiva agregar nombre variant
+(define (agrega b nombre)
+  (format "{ ~a ~a }" nombre (tt2 b) )) ;(1 (2 3))
 
 ;prr :: structV -> cons 
 ;funcion que transforma nustras estructuras de nuestro lenguaje a un cons de racket
@@ -447,9 +485,9 @@ update-env! :: Sym Val Env -> Void
                                            [(= largo-val  1)   (cons  (prr ( first  values)))  ]
                                            [else (cons (prr (first values )) (prr ( second  values)) )   ])))))
 
-;cl :: cons -> String
-;funcin que transforma de cons de racket a una lista bonita con la ayuda de la funcino rr, esta solo se encarga de poner un list sie s necesario
-(define (cl b)
+;listasbonitas :: cons -> String
+;funcin que transforma de cons de racket a una lista bonita con la ayuda de la funcino rr, esta solo se encarga de poner un list si es necesario
+(define (listasbonitas b)
   (format "{list ~a}" (tt b))) ;(1 (2 3))
 
 
@@ -460,7 +498,7 @@ update-env! :: Sym Val Env -> Void
       ""
       (let ([primval (first b) ])
         (cond
-          [(list? primval )  (format "~a ~a"(cl primval) (tt (cdr b))) ]
+          [(list? primval )  (format "~a ~a"(listasbonitas primval) (tt (cdr b))) ]
           [else (format "~a ~a"primval (tt (cdr b))) ]))
       )
   )
@@ -486,8 +524,43 @@ update-env! :: Sym Val Env -> Void
 
 
 
+(run '{local {{datatype T {C a {lazy b}}}
+                {define x {C  0 {+ 1 2}}}}
+               x} "pp")
 
 
-;(symbol=? 'Empty? )
+
+
+
+; (run '{local {{datatype Nat                                                    ;ejemplo enunciado
+;                  {Zero} 
+;                  {Succ n}}
+;                {define pred {fun {n} 
+;                               {match n
+;                                 {case {Zero} => {Zero}}
+;                                 {case {Succ m} => m}}}}}
+;          {pred {Succ {Succ {Succ {Zero}}}}}} "ppwu")
+
+
+
+
+; (run '{match {list 2 {list 4 5} 6}           ;ejemplo enunciado
+;          {case {list a {list b c} d} => c}}) ;5)
+
+
+
+
+;(run '{match 2
+;                {case 1 => 2}
+;                {case 2 => 3}})
+;        
+
+;(run '{local {{datatype T 
+;                  {C {lazy a}}}
+;                {define x {C {/ 1 1}}}}
+;          {match x
+;            {case {C a} => a}}})
+;"/: division by zero"
+; (run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}}) 
 
 
