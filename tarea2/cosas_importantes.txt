@@ -1,145 +1,24 @@
-#lang play
-> (run '{Empty? {Empty}})
-#t
-> (run '{List? {Cons 1 2}})
-#t
->(run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}})
-3
-
-(parse '{local {{datatype List 
-                  {Empty} 
-                  {Cons n1 rec}}}
-          {List? {Empty}}})
-
-(lcal 
-  (list (datatype 'List 
-                   (list (variant 'Empty '()) 
-                         (variant 'Cons '(n1 rec))))) 
-        ---
-   )
-)
-
-#aesi me debe quedar
------------LISTAS----------------
-(lcal 
- (list (datatype 'List 
-                  (list (variant 'Empty '()) 
-                        (variant 'Cons '(n1 rec))))) 
-
-        (dfine 'lenght (fun '(n) 
-                        (mtch (id 'n) 
-                           (list (cse (constrP 'Empty '()) (app (id 'Zero) '())) 
-                                 (cse (constrP 'Cons (list (idP 'm))) (id 'm)))))))
-       ---)
-
----------FUNCION LENGHT------------
-(parse '{local {{datatype List 
-                  {Empty} 
-                  {Cons n1 rec}
-                  {List m}}
-                {define lenght {fun {n} 
-                               {match n
-                                 {case {Empty} => 0 }
-                                 {case {Cons m1 m2 } => {+ 1 { lenght m2 } }}}}}}
-          {lenght {Cons 1{ Cons 2 {Cons 4 {Empty }}}}}} )
-
-(lcal (list  (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))  (dfine   'lenght   (fun    '(n)    (mtch     (id 'n)     (list      (cse (constrP 'Empty '()) (num 0))      (cse (constrP 'Cons (list (idP 'm1) (idP 'm2))) (prim-app '+ (list (num 1) (app (id 'lenght) (list (id 'm2))))))))))) (app (id 'lenght) (list (app (id 'Cons) (list (num 1) (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (num 4) (app (id 'Empty) '()))))))))))
-(lcal (list  (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))  (dfine   'lenght   (fun    '(n)    (mtch     (id 'n)     (list      (cse (constrP 'Empty '()) (num 0))      (cse (constrP 'Cons (list (idP 'm1) (idP 'm2))) (prim-app '+ (list (num 1) (app (id 'lenght) (list (id 'm2))))))))))) (app (id 'length) (list (app (id 'Cons) (list (num 1) (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (num 3) (app (id 'Empty) '()))))))))))
-
--------------------------------------------------------------------------------------------------------
-que si lo hago alprincipio con '{local {{datatype List
-                 {Empty}
-                 {Cons n1 rec}}
-               {define lenght {fun {n}
-                              {match n
-                                {case {Empty} => 0 }
-                                {case {Cons m1 m2 } => {+ 1 { lenght m2 } }}}}}} {QUE TENDRIA Q PONER AQUI})  y como q despues tendria q a lo otro como ponerle el ambiente de esta
+  (update-env! varname
+               (λ (args ) (structV name varname (guarda-list-expr2 argumentostipo (first args) (second args)) ) )
+               env)
 
 
 
 
+el ambiente
 
 
-
-
-
-
-
-
-(define(run prog [flag ""])
-  (cond
-    [(equal? "ppwu" flag) (pretty-printing (interp (super-parse prog) empty-env ))]
-    [else  (interp (super-parse prog) empty-env) ]))
-
-
-
-
-(define (super-parse l)
-  (lcal
-   (list (datatype 'List (list (variant 'Empty '()) (variant 'Cons '(n))))
-         (dfine 'length (fun '(n)(mtch (id 'n)
-                                       (list (cse (constrP 'Empty '()) (num 0))
-                                             (cse (constrP 'Cons (list (idP 'm1) (idP 'm2))) (prim-app '+ (list (num 1) (app (id 'length) (list (id 'm2)))))))))))
- (parse l)))
-
-
---------------------------------------------------------------------
- si lo  de preety recibiera tmb numeros 
-
-
-;pretty-printing :: structV | number -> string
-(define (pretty-printing l)
-  (cond
-    [( structV? l)
-                (let (( name    (structV-name l))
-                      ( values  (structV-values l))
-                      ( variant (structV-variant l)))
-                  (if (empty? values)  (format "{~a}" variant)  (format "{~a ~a}" variant (pretty-printing ( first  values)))))]
-    [else l]))
-
---------------------------------------------------------------------
-(mtch
- (app (id 'Cons) (list (num 1) (app (id 'Cons) (list (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (num 3) (app (id 'Empty) '()))))) (app (id 'Cons) (list (num 4) (app (id 'Empty) '())))))))
+(aEnv
  (list
-  (cse
-   (constrP 'Cons (list (idP 'a) (constrP 'Cons (list (constrP 'Cons (list (idP 'b) (constrP 'Cons (list (idP 'c) (constrP 'Empty '()))))) (constrP 'Cons (list (idP 'd) (constrP 'Empty '())))))))
-   (id 'c))))
-
-(mtch  (app (id 'Cons) (list (num 2) (app (id 'Cons) (list (app (id 'Cons) (list (num 4) (app (id 'Cons) (list (num 5) (app (id 'Empty) '()))))) (app (id 'Cons) (list (num 6) (app (id 'Empty) '())))))))
- (list (cse (constrP 'Cons (list (idP 'list) (constrP 'Cons (list (idP 'a) (constrP 'Cons (list (constrP 'list (list (idP 'b) (idP 'c))) (constrP 'Cons (list (idP 'd) (constrP 'Empty '()))))))))) (id 'c))))
-
+  (cons 'x (structV 'T 'C (list (prim-app '/ (list (num 1) (num 0))))))
+  '(C? . #<procedure:...ion/tarea2/main.rkt:297:15>)
+  '(C . #<procedure:...ion/tarea2/main.rkt:292:15>)
+  '(T? . #<procedure:...ion/tarea2/main.rkt:282:15>))
+ (mtEnv))
 
 
 
 
-;convertir-a-cons: src -> src
-;recibe el sintaxis concreta una lista y la ocnvierte a una lista de cons en sintaxis concreta
-(define (convertir-a-cons args )
-  (if (empty? args)
-      (list 'Empty )
-      (let ([cosa1 (first args) ])
-        (list 'Cons cosa1  (convertir-a-cons (cdr args))))))
-
-
-;conv
-(define (conv p)
-  (if (empty? p)
-      (list 'Empty )
-      (let ([val (first p) ])
-        (cond
-          [ (equal? 'list val) (list 'Cons (second p)(conv (cdr  (cdr p))))     ]
-          [ else  (list 'Cons val  (conv (cdr p))) ])
-        )))
-
-
-
-
-
-
-
-
-
-
-
-
-
+(structV-variant  
+     (interp (first (first v))
+             (second v))        ) varname))

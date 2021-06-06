@@ -1,5 +1,4 @@
 #lang play
-(print-only-errors #t)
 
 #|
 <expr> ::= <num>
@@ -173,36 +172,33 @@
          (interp t env)
          (interp f env))]
     ; identifier
-    [(id x)   (if (equal? 'eee x) env   (strict(env-lookup x env)))]  ;(strict(env-lookup x env))]  ; aca va  abuscar el id al ambiente y si se encuentar con una exprV la tiene que evaluar
+    [(id x) (strict(env-lookup x env))]  ; aca va  abuscar el id al ambiente y si se encuentar con una exprV la tiene que evaluar
     ; function (notice the meta interpretation)
     [(fun ids body)
-      (λ (arg-vals)
-        (def ammmm (cdr arg-vals))
-        (def new-arg   (map (λ (a) (interp a ammmm)) (car arg-vals))    )
-        (interp body (extend-env ids new-arg env)))]
-     ;(λ (arg-vals)      (map (λ (a) (interp a env)) (first arg-vals)))] ;   (map (λ (a) (interp (first a) (second a))) arg-vals))]
-    ; (λ (arg-vals)
-      ; (def new-arg   (map (λ (a) (interp a env)) (car arg-vals))    )
-       ;(interp body (extend-env ids new-arg env)))]
-    ;  (λ (a)  (cdr a)))  ]
-     ;  (interp body 
-     ;  (λ (arg-vals) 
-     ;  (interp body (extend-env ids  (map (λ (a b) (interp a b)) (first arg-vals) (second arg-vals)) env)))]
+     (λ (arg-vals)
+       (interp body (extend-env ids arg-vals env)))]
     ; (clousureV ids body env)]
     ; application
     [(app fun-expr arg-expr-list)   ;  arg-expr-list -> (list (num 1) (prim-ap ....))
      (cond
-       [ ( id? fun-expr)    ((interp fun-expr env)(cons arg-expr-list env )  )] ;les paso su ambiente y valor ahic adoa uno decide si lo interpreta o no
-                             ;(map (λ (a) (interp a env)) arg-expr-list))] ;se busca id en el anbiente  {List? {Cons 1 2}}} -> (list (structV 'List 'Cons '(1 2)))
-                                                                                                     ;{T? x}               -> (list (structV 'T 'C '(1)))         
-;(app (id 'define) (list (id 'pred) (fun '(n) (mtch (id 'n) (list (cse (constrP 'Zero '()) (app (id 'Zero) '())) (cse (constrP 'Succ (list (idP 'm))) (id 'm)))))))   
+       [ ( id? fun-expr)    ((interp fun-expr env)
+                             (map (λ (a) (interp a env)) arg-expr-list))]
        [ (fun? fun-expr) (def (clousureV arg body fenv)  (creacl fun-expr env));(strict (interp fun-expr env)))  (creacl funcion env)
                                (def new-arg-expr-list (guarda-list-expr arg arg-expr-list fenv) ) ; lista sera el valor  o exprV dependiendo de lo q se dijo
                                (def new-list-ids (sacar arg)) ;(list x y z ...)
                                (def new-env  (extend-env new-list-ids
                                                          new-arg-expr-list
                                                          fenv) )
-                               (interp body new-env)])] 
+                               (interp body new-env)])]
+       
+     ; (def (clousureV arg body fenv) (strict (interp fun-expr env)))
+      ;(def new-arg-expr-list (guarda-list-expr arg arg-expr-list fenv) ) ; lista sera el valor  o exprV dependiendo de lo q se dijo
+      ;(def new-list-ids (sacar arg)) ;(list x y z ...)
+      ;(def new-env  (extend-env new-list-ids
+      ;                          new-arg-expr-list
+      ;                          fenv) )   
+      ;(interp body new-env)] ;esto desencadena q lo q este aca se interprete
+
     ; primitive application
     [(prim-app prim arg-expr-list)
      (apply (cadr (assq prim *primitives*))
@@ -238,6 +234,15 @@
                 env))
 
 
+;funcion encargada de extender los ambientes, guarda-list-expr se encarga de ver como se guaradn estos valores si es un valor numerico o un exprpV
+;(define (funcion-extiende arg arg-expr-list fenv)   ;arg = (list x (lazy y))     ;arg-expr-list = (list (num 1 ) (prim-app ...))
+;  (let ([ id   (car arg)  ]
+;        [  val (car arg-expr-list )])
+;    (cond
+;      [(symbol? id)  (extend-env id val fenv)     ];(funcion-extiende (cdr arg) ( cdr arg-expr-list) (extend-env id val fenv))]
+;      [ else       (extend-env (second id ) val fenv)]; ((funcion-extiende (cdr arg) ( cdr arg-expr-list) (extend-env id (second val) fenv)))]
+;)))
+
 ;guarda-list-expr :: List[arg] List[expr] -> List[expr y exprV]
 ;funcion encargada de dejar en la lista el valor numerico o la expresion/contrato, es asi como se van a guardar en el ambiente
 (define (guarda-list-expr arg arg-expr-list fenv)     ;arg = (list x (lazy y))
@@ -254,60 +259,31 @@
 (define(interp-def d env)
   (match d
     [(dfine id val-expr)
-    ; (update-env! id (interp val-expr env) env)];
      (update-env! id (interp val-expr env) env)]
     [(datatype name variants)
      ;; extend environment with new definitions corresponding to the datatype
      (interp-datatype name env)
      (for-each (λ (v) (interp-variant name v env)) variants)]))
 
- 
-
 ; interp-datatype :: String Env -> Void
 (define(interp-datatype name env)
   ; datatype predicate, eg. Nat?
   (update-env! (string->symbol (string-append (symbol->string name) "?"))
-               (λ (v) (symbol=? (structV-name (interp (first (car v))  (cdr v))) name))
-               ;(λ (v) (interp (first (first v))  (second v)));(first (first v)))
+               (λ (v) (symbol=? (structV-name (first v)) name))
                env))
- 
+
 ; interp-variant :: String String Env -> Void
 (define(interp-variant name var env)
   ;; name of the variant or dataconstructor
   (def varname (variant-name var))
-  (def argumentostipo (variant-params var))
   ;; variant data constructor, eg. Zero, Succ
   (update-env! varname
-                (λ (args ) (structV name varname (guarda-list-expr2 argumentostipo (car args)  (cdr args)) )   )
-              ; (λ (arg-env) arg-env  )
-              ;  (λ (v) v)
+               (λ (args) (structV name varname args))
                env)
   ;; variant predicate, eg. Zero?, Succ?
   (update-env! (string->symbol (string-append (symbol->string varname) "?"))
-              ; (λ (v) (symbol=? (structV-variant (first v)) varname))
-              ; (λ (v) v)
-              (λ (v) (symbol=? (structV-variant (interp (first (car v))  (cdr v))) varname)    ) ;uno de esos first lo tengo q cambiar a car
-              
+               (λ (v) (symbol=? (structV-variant (first v)) varname))
                env))
-
-
-
-
-(define (guarda-list-expr2 arg arg-expr-list fenv)     ;arg = (list x (lazy y))
-  (if (empty? arg-expr-list)                                    ;arg-expr-list = (list (num 1 ) (prim-app ...))
-      '()
-      (let ([id (car arg)  ]
-            [val(car arg-expr-list) ])
-        (cond
-          [(symbol? id) (cons (interp val fenv)   (guarda-list-expr2  arg  (cdr arg-expr-list) fenv)  )   ]
-          [ else   (cons  val  (guarda-list-expr2 (cdr arg ) (cdr arg-expr-list) fenv)  )    ])
-        
-  )))
-
-
-
-
-  
 
 ;;;;; pattern matcher
 (define(find-first-matching-case value cases)
@@ -426,13 +402,11 @@ update-env! :: Sym Val Env -> Void
                                {match n
                                  {case {Empty} => 0 }
                                  {case {Cons m1 m2 } => {+ 1 { length m2 } }}}}}} ,prog }])
-    
     (let ([val (interp (parse l) empty-env ) ])
       (cond
         [(equal? "ppwu" flag) (if (number? val )  val (pretty-printing val ))]
         [(equal? "pp" flag) (if (number? val )  val (cl (prr val )))]
-        [else  val ])))
- )
+        [else  val ]))))
 
 ;prr :: structV -> cons 
 ;funcion que transforma nustras estructuras de nuestro lenguaje a un cons de racket
@@ -481,13 +455,3 @@ update-env! :: Sym Val Env -> Void
            (set-box! cache inval)
            inval))]
     [else val]))
-
-
-
-
-
-
-
-;(symbol=? 'Empty? )
-
-
