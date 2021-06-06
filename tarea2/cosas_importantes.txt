@@ -22,3 +22,213 @@ el ambiente
 (structV-variant  
      (interp (first (first v))
              (second v))        ) varname))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(aEnv
+ '((Cons? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
+   (Cons . #<procedure:.../tarea2/main_v2.rkt:284:15>)
+   (Empty? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
+   (Empty . #<procedure:.../tarea2/main_v2.rkt:284:15>)
+   (List? . #<procedure:.../tarea2/main_v2.rkt:275:15>))
+ (aEnv
+  '((length . #<procedure:.../tarea2/main_v2.rkt:179:5>)
+    (Cons? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
+    (Cons . #<procedure:.../tarea2/main_v2.rkt:284:15>)
+    (Empty? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
+    (Empty . #<procedure:.../tarea2/main_v2.rkt:284:15>)
+    (List? . #<procedure:.../tarea2/main_v2.rkt:275:15>))
+  (mtEnv)))
+
+
+
+'{local {{datatype List
+                       {Empty}
+                        {Cons a b}}}
+                {List? {Cons 1 2}}}
+
+(lcal (list
+       (datatype 'List (list
+                        (variant 'Empty '())
+                        (variant 'Cons '(a b)))))
+      (app (id 'List?) (list (app (id 'Cons) (list (num 1) (num 2))))))
+
+
+
+'{local {{datatype T 
+                  {C {lazy a}}}
+                {define x {C {/ 1 1}}}}
+          {T? x}}
+
+(lcal (list (datatype 'T (list
+                          (variant 'C '((lazy a)))))
+            (dfine 'x (app (id 'C) (list (prim-app '/ (list (num 1) (num 1)))))))
+      (app (id 'T?) (list (id 'x))))
+
+#0=(aEnv
+    '((x . #0#) (C? . #<procedure:.../tarea2/main_v2.rkt:289:15>) (C . #<procedure:.../tarea2/main_v2.rkt:284:15>) (T? . #<procedure:.../tarea2/main_v2.rkt:275:15>))
+    (aEnv
+     '((length . #<procedure:.../tarea2/main_v2.rkt:179:5>)
+       (Cons? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
+       (Cons . #<procedure:.../tarea2/main_v2.rkt:284:15>)
+       (Empty? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
+       (Empty . #<procedure:.../tarea2/main_v2.rkt:284:15>)
+       (List? . #<procedure:.../tarea2/main_v2.rkt:275:15>))
+     (mtEnv)))
+
+
+
+
+(parse '{local {{datatype List
+                          {Empty}
+                          {Cons a b}}}
+                eee})
+
+(run '{local {{datatype List
+                        {Empty}
+                        {Cons a b}}}
+               eee})
+
+
+
+
+(map ((λ (a b) (interp a b)) (first arg-vals) (second arg-vals))) 
+
+(aEnv
+ '((pred . #<procedure:.../tarea2/main_v2.rkt:179:5>)
+   (Succ? . #<procedure:.../tarea2/main_v2.rkt:287:15>)
+   (Succ . #<procedure:.../tarea2/main_v2.rkt:280:16>)
+   (Zero? . #<procedure:.../tarea2/main_v2.rkt:287:15>)
+   (Zero . #<procedure:.../tarea2/main_v2.rkt:280:16>)
+   (Nat? . #<procedure:.../tarea2/main_v2.rkt:269:15>))
+ (aEnv
+  '((length . #<procedure:.../tarea2/main_v2.rkt:179:5>)
+    (Cons? . #<procedure:.../tarea2/main_v2.rkt:287:15>)
+    (Cons . #<procedure:.../tarea2/main_v2.rkt:280:16>)
+    (Empty? . #<procedure:.../tarea2/main_v2.rkt:287:15>)
+    (Empty . #<procedure:.../tarea2/main_v2.rkt:280:16>)
+    (List? . #<procedure:.../tarea2/main_v2.rkt:269:15>))
+  (mtEnv)))
+
+
+
+ (app (id 'pred) (list (app (id 'Succ) (list (app (id 'Succ) (list (app (id 'Zero) '())))))))
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    [(mtch expr cases)
+     (def value-matched (interp expr env))
+ (cond
+       [ (structV? value-matched )
+         (cond
+           [(list? (structV-values value-matched ))
+            (def (cons alist body) (find-first-matching-case value-matched cases))
+            (interp body (extend-env (map car alist) (map cdr alist) env))]
+           [else
+            (def new-struct (structV(structV-name value-matched)(structV-variant value-matched)(map (lambda (a) (interp a env )) (structV-values value-matched) )))
+            (def (cons alist body) (find-first-matching-case new-struct cases))
+            (interp body (extend-env (map car alist) (map cdr alist) env))])]
+       [else
+        (def (cons alist body) (find-first-matching-case value-matched cases))
+          (interp body (extend-env (map car alist) (map cdr alist) env))])])
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+(symbol=? 'Empty? )
+
+
+
+
+(parse '{local {{datatype T 
+                  {C {lazy a}}}
+                {define x {C {/ 1 0}}}}
+          {match x
+            {case {C a} => a}}})
+
+
+(run '{local {{datatype T 
+                  {C {lazy a}}}
+                {define x {C {/ 1 0}}}}
+          {match x
+            {case {C a} => a}}})
+;"/: division by zero"
+
+
+
+
+(define (guarda-list-expr2 arg arg-expr-list fenv)     ;arg = (list x (lazy y))
+  (if (empty? arg)                                    ;arg-expr-list = (list (num 1 ) (prim-app ...))
+      '()
+      (let ([id (car arg)  ]
+            [val(car arg-expr-list) ])
+        (cond
+          [(symbol? id) (cons (interp val fenv)   (guarda-list-expr2 (cdr arg ) (cdr arg-expr-list) fenv)  )   ]
+          [ else   (cons  val  (guarda-list-expr2 (cdr arg ) (cdr arg-expr-list) fenv)  )    ])
+        
+  ))) 
+
+
+
+
+
+
+
+
+
+
+
+
+

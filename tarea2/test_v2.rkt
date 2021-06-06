@@ -187,10 +187,27 @@
 
 (test/exn (run '{{fun {x  y} x} 1 {/ 1 0}}) "division by zero")
 
+
+(test (run '{local {{datatype T {C a {lazy b}}}
+                {define x {C  0 {+ 1 2}}}}
+               x} ) (structV 'T 'C (list 0 (prim-app '+ (list (num 1) (num 2))))))
+
+
 (test (run '{local {{datatype T 
                   {C {lazy a}}}
                 {define x {C {/ 1 0}}}}
           {T? x}}) #t)
+
+(test (run '{local {{datatype T               ;caso lazy 
+                              {C a {lazy b}}}
+                    {define x {C  0 {/ 1 1}}}}
+              x} ) (structV 'T 'C (list 0 (prim-app '/ (list (num 1) (num 1))))))
+(test (run '{local {{datatype T {C a  b}}    ;caso no lazy
+                {define x {C  0 {/ 1 1}}}}
+               x} ) (structV 'T 'C '(0 1)))
+(test (run '{local {{datatype T {C a {lazy b}}}  ;caso no lazy bonito
+                {define x {C  0 {/ 1 1}}}}
+               x} "pp")  "{ C 0 1  } "  ) ;ver este caso luego
 
 
 
