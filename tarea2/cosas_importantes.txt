@@ -1,228 +1,73 @@
-  (update-env! varname
-               (λ (args ) (structV name varname (guarda-list-expr2 argumentostipo (first args) (second args)) ) )
-               env)
 
-
-
-
-el ambiente
-
-
-(aEnv
- (list
-  (cons 'x (structV 'T 'C (list (prim-app '/ (list (num 1) (num 0))))))
-  '(C? . #<procedure:...ion/tarea2/main.rkt:297:15>)
-  '(C . #<procedure:...ion/tarea2/main.rkt:292:15>)
-  '(T? . #<procedure:...ion/tarea2/main.rkt:282:15>))
- (mtEnv))
-
-
-
-
-(structV-variant  
-     (interp (first (first v))
-             (second v))        ) varname))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(aEnv
- '((Cons? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
-   (Cons . #<procedure:.../tarea2/main_v2.rkt:284:15>)
-   (Empty? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
-   (Empty . #<procedure:.../tarea2/main_v2.rkt:284:15>)
-   (List? . #<procedure:.../tarea2/main_v2.rkt:275:15>))
- (aEnv
-  '((length . #<procedure:.../tarea2/main_v2.rkt:179:5>)
-    (Cons? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
-    (Cons . #<procedure:.../tarea2/main_v2.rkt:284:15>)
-    (Empty? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
-    (Empty . #<procedure:.../tarea2/main_v2.rkt:284:15>)
-    (List? . #<procedure:.../tarea2/main_v2.rkt:275:15>))
-  (mtEnv)))
-
-
-
-'{local {{datatype List
-                       {Empty}
-                        {Cons a b}}}
-                {List? {Cons 1 2}}}
-
-(lcal (list
-       (datatype 'List (list
-                        (variant 'Empty '())
-                        (variant 'Cons '(a b)))))
-      (app (id 'List?) (list (app (id 'Cons) (list (num 1) (num 2))))))
-
-
-
-'{local {{datatype T 
-                  {C {lazy a}}}
-                {define x {C {/ 1 1}}}}
-          {T? x}}
-
-(lcal (list (datatype 'T (list
-                          (variant 'C '((lazy a)))))
-            (dfine 'x (app (id 'C) (list (prim-app '/ (list (num 1) (num 1)))))))
-      (app (id 'T?) (list (id 'x))))
-
-#0=(aEnv
-    '((x . #0#) (C? . #<procedure:.../tarea2/main_v2.rkt:289:15>) (C . #<procedure:.../tarea2/main_v2.rkt:284:15>) (T? . #<procedure:.../tarea2/main_v2.rkt:275:15>))
-    (aEnv
-     '((length . #<procedure:.../tarea2/main_v2.rkt:179:5>)
-       (Cons? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
-       (Cons . #<procedure:.../tarea2/main_v2.rkt:284:15>)
-       (Empty? . #<procedure:.../tarea2/main_v2.rkt:289:15>)
-       (Empty . #<procedure:.../tarea2/main_v2.rkt:284:15>)
-       (List? . #<procedure:.../tarea2/main_v2.rkt:275:15>))
-     (mtEnv)))
-
-
-
-
-(parse '{local {{datatype List
-                          {Empty}
-                          {Cons a b}}}
-                eee})
-
-(run '{local {{datatype List
-                        {Empty}
-                        {Cons a b}}}
-               eee})
-
-
-
-
-(map ((λ (a b) (interp a b)) (first arg-vals) (second arg-vals))) 
-
-(aEnv
- '((pred . #<procedure:.../tarea2/main_v2.rkt:179:5>)
-   (Succ? . #<procedure:.../tarea2/main_v2.rkt:287:15>)
-   (Succ . #<procedure:.../tarea2/main_v2.rkt:280:16>)
-   (Zero? . #<procedure:.../tarea2/main_v2.rkt:287:15>)
-   (Zero . #<procedure:.../tarea2/main_v2.rkt:280:16>)
-   (Nat? . #<procedure:.../tarea2/main_v2.rkt:269:15>))
- (aEnv
-  '((length . #<procedure:.../tarea2/main_v2.rkt:179:5>)
-    (Cons? . #<procedure:.../tarea2/main_v2.rkt:287:15>)
-    (Cons . #<procedure:.../tarea2/main_v2.rkt:280:16>)
-    (Empty? . #<procedure:.../tarea2/main_v2.rkt:287:15>)
-    (Empty . #<procedure:.../tarea2/main_v2.rkt:280:16>)
-    (List? . #<procedure:.../tarea2/main_v2.rkt:269:15>))
-  (mtEnv)))
-
-
-
- (app (id 'pred) (list (app (id 'Succ) (list (app (id 'Succ) (list (app (id 'Zero) '())))))))
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    [(mtch expr cases)
-     (def value-matched (interp expr env))
- (cond
-       [ (structV? value-matched )
+;run :: src -> structV | val | string
+;parsea, interpreta y convierte sructuras a valores string mas amigables
+(define(run prog [flag ""])
+  (let ([l `{local {{datatype List 
+                  {Empty} 
+                  {Cons n1 rec}}
+                {define length {fun {n} 
+                               {match n
+                                 {case {Empty} => 0 }
+                                 {case {Cons m1 m2 } => {+ 1 { length m2 } }}}}}} ,prog }])
+    
+    (let ([val (interp (parse l) empty-env ) ])
+      (cond
+        [(equal? "ppwu" flag) (if (number? val )  val (pretty-printing val ))]
+        [(equal? "pp" flag)
          (cond
-           [(list? (structV-values value-matched ))
-            (def (cons alist body) (find-first-matching-case value-matched cases))
-            (interp body (extend-env (map car alist) (map cdr alist) env))]
+           [(number? val )  val]
+           [(equal? (structV-name val)'List) (listasbonitas (prr val ))]
            [else
-            (def new-struct (structV(structV-name value-matched)(structV-variant value-matched)(map (lambda (a) (interp a env )) (structV-values value-matched) )))
-            (def (cons alist body) (find-first-matching-case new-struct cases))
-            (interp body (extend-env (map car alist) (map cdr alist) env))])]
-       [else
-        (def (cons alist body) (find-first-matching-case value-matched cases))
-          (interp body (extend-env (map car alist) (map cdr alist) env))])])
+            (def listaarg (strictver2 (structV-values val)) ) ;primero queremos evaluar las promesas o sacarlas nomas
+            (format "{ ~a ~a } "(structV-variant val) (tt2 listaarg (structV-variant val) ))])]
+        [else  (saca-expr-de-exprV val) ]))))   ;saca-expr-de-exprV  lo puse aca porque si no me devolvia una structu donde algunos valores eran exprV y eso era gigante
+ 
+(lcal
+ (list
+  (datatype 'stream (list (variant 'S '(a (lazy b)))))
+  (dfine 'make-stream (fun '(hd tl) (app (id 'S) (list (id 'hd) (id 'tl)))))
+  (dfine 'stream-hd (fun '(stream) (mtch (id 'stream) (list (cse (constrP 'S (list (idP 'uno) (idP 'dos))) (id 'uno))))))
+  (dfine 'stream-tl (fun '(stream) (mtch (id 'stream) (list (cse (constrP 'Cons (list (idP 'uno) (idP 'dos))) (id 'dos))))))
+  (dfine 'ones (app (id 'make-stream) (list (num 1) (id 'ones)))))
+ (num 1))
+
+
+
+
+#Remove punctuations = !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~
+
+def limpiar(text):
+  text = re.sub("@[A-Za-z0-9]+","",text) #Remove @ sign
+  text= re.sub(r'https.?://[^\s]+[\s]?', '', text) #eliminar lis links y esas cosas raras
+  text = re.sub(r'pic.twitter.com/[\w]*',"", text) #elimina imagenes
+  text  = "".join([char for char in text if char not in string.punctuation]) #eliminamos todas las cosas raras restantes
+  text = re.sub('[0-9]+', '', text) #elimina numeros
+  return text
+
+data['text_clean'] = data['text'].apply(lambda x: limpiar(x))
+    
+data[['text','text_clean']]
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-(symbol=? 'Empty? )
-
-
-
-
-(parse '{local {{datatype T 
-                  {C {lazy a}}}
-                {define x {C {/ 1 0}}}}
-          {match x
-            {case {C a} => a}}})
-
-
-(run '{local {{datatype T 
-                  {C {lazy a}}}
-                {define x {C {/ 1 0}}}}
-          {match x
-            {case {C a} => a}}})
-;"/: division by zero"
-
-
-
-
-(define (guarda-list-expr2 arg arg-expr-list fenv)     ;arg = (list x (lazy y))
-  (if (empty? arg)                                    ;arg-expr-list = (list (num 1 ) (prim-app ...))
-      '()
-      (let ([id (car arg)  ]
-            [val(car arg-expr-list) ])
-        (cond
-          [(symbol? id) (cons (interp val fenv)   (guarda-list-expr2 (cdr arg ) (cdr arg-expr-list) fenv)  )   ]
-          [ else   (cons  val  (guarda-list-expr2 (cdr arg ) (cdr arg-expr-list) fenv)  )    ])
-        
-  ))) 
-
-
-
-
+(aEnv
+ '((stream-tl . #<procedure:.../tarea2/main_v2.rkt:171:6>)
+   (stream-hd . #<procedure:.../tarea2/main_v2.rkt:171:6>)
+   (make-stream . #<procedure:.../tarea2/main_v2.rkt:171:6>)
+   (S? . #<procedure:.../tarea2/main_v2.rkt:281:14>)
+   (S . #<procedure:.../tarea2/main_v2.rkt:273:16>)
+   (stream? . #<procedure:.../tarea2/main_v2.rkt:262:15>))
+ (aEnv
+  '((length . #<procedure:.../tarea2/main_v2.rkt:171:6>)
+    (Cons? . #<procedure:.../tarea2/main_v2.rkt:281:14>)
+    (Cons . #<procedure:.../tarea2/main_v2.rkt:273:16>)
+    (Empty? . #<procedure:.../tarea2/main_v2.rkt:281:14>)
+    (Empty . #<procedure:.../tarea2/main_v2.rkt:273:16>)
+    (List? . #<procedure:.../tarea2/main_v2.rkt:262:15>))
+  (mtEnv)))
+(structV 'T 'C (list 0 (prim-app '/ (list (num 1) (num 0)))))
 
 
 

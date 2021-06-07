@@ -4,6 +4,17 @@
 ;; Test sub-module.
 ;; See http://blog.racket-lang.org/2012/06/submodules.html
 
+;no alcance a terminar la tarea, llegue hasta los stream, me funcionaban las cosas de lazy pero cuando llegue a los stream
+;tenía una falla que no logré encontrar
+
+;Cosas que asumi :
+; no s eva  intertar ppwu con estructuras, sino que se va a ocupar pp
+
+;como hice las cosas:
+;para extender el lenguajes a lista hice que en la sintaxis conreta al recibir una lista esta la convertia en sintaxis concreta de un cos y luego
+;como ya se tenian las cosas para cons no se debiai hacer nada
+;lazy: cree un deftipe para guardar las expresiones no evaluadas con su ambiente y luego en puntos de stricten se evaluara (strict es para las funcines y strictver2 para los deftyype)
+
 ;this tests should never fail; these are tests for MiniScheme+
 (module+ test
   (test (run '{+ 1 1}) 2)
@@ -141,6 +152,8 @@
 "{Succ {Succ {Zero}}}")
 
 
+(test (run '{Cons 1 2} "ppwu")"{Cons 1 2}")
+
 (test (run '{+ 1 1} "ppwu") 2)
 
 ;LISTAS
@@ -148,9 +161,11 @@
 (test (run '{Empty? {Empty}}) #t)                              ;ejemplo enunciado
 (test (run '{List? {Cons 1 2}}) #t)                            ;ejemplo enunciado
 (test (run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}}) 3)    ;ejemplo enunciado
+(run '{Cons 1 {Cons {Cons 1 2 } 4}})
 
- 
 ;parte 2 (extender el lenguaje para soportar la notación '{list e1 e2 … en} )
+
+
 (test  (run '{match {list {+ 1 1} 4 6}   ;ejemplo enunciado
           {case {Cons h r} => h}
           {case _ => 0}})
@@ -181,7 +196,6 @@
 (test (run '{list 1 (list 3 4) 6} "pp") "{list 1 {list 3 4 } 6 }")
 
 
-
 ;IMPLEMENTACION LAZY
 (test (run '{{fun {x  {lazy y}} x} 1 {/ 1 0}}) 1)
 
@@ -200,44 +214,23 @@
 
 (test (run '{local {{datatype T               ;caso lazy 
                               {C a {lazy b}}}
-                    {define x {C  0 {/ 1 1}}}}
-              x} ) (structV 'T 'C (list 0 (prim-app '/ (list (num 1) (num 1))))))
+                    {define x {C  0 {/ 1 0}}}}
+              x} ) (structV 'T 'C (list 0 (prim-app '/ (list (num 1) (num 0))))))
+
+(test/exn (run '{local {{datatype T {C a  b}}    ;caso no lazy
+                {define x {C  0 {/ 1 0}}}}
+               x} )                            "division by zero")
+
+
 (test (run '{local {{datatype T {C a  b}}    ;caso no lazy
                 {define x {C  0 {/ 1 1}}}}
-               x} ) (structV 'T 'C '(0 1)))
+               x} )         (structV 'T 'C '(0 1)))                   
+
 (test (run '{local {{datatype T {C a {lazy b}}}  ;caso no lazy bonito
-                {define x {C  0 {/ 1 1}}}}
-               x} "pp")  "{ C 0 1  } "  ) ;ver este caso luego
+                {define x {C  0 {/ 1 5 }}}}
+               x} "pp")  "{ C 0 1/5  } "  ) ;ver este caso luego
 
+(test/exn (run '{local {{datatype T {C a {lazy b}}}
+              {define x {C  0 {/ 1 0 }}}}
+               x} "pp")  "division by zero")
 
-
-
-
-
-;COSAS QUE DESPUES TENGO QUE ELIMINAR
-
-
-
-;(convertir-a-cons {list 2 {list 4 5} 6})
-;(define c1 (list 2 (list 4 5) 6))
-;(define c2 (cons 2 (cons (cons 4 (cons 5 '())) (cons 6 '() ))))
-;(define uno '(list 2 (list 4 5) 6))
-;(define dos '(cons 2 (cons (cons 4 (cons 5 (Empty))) (cons 6 (Empty) ))))
-;(parse dos)
-;(parse uno)
-
-
-
-
-;(parse '{match (Cons 1 (Cons (Cons 2 (Cons 3 (Empty))) (Cons 4 (Empty) )))
-;          {case (Cons a (Cons (Cons b (Cons c (Empty))) (Cons d (Empty) ))) => c}})
-
-
-;(parse '{match {list 1 {list 2 3} 4}
-;         {case {list a {list b c} d} => c}})
-
-;(parse '{list a {list b c} d})
-;(parse '(Cons a (Cons (Cons b (Cons c (Empty))) (Cons d (Empty) ))))
-
-
- 

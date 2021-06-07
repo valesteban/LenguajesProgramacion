@@ -131,7 +131,7 @@
 
 
 ;conv:: src -> src
-;recibe el sintaxis concreta una lista y la ocnvierte a una lista de cons en sintaxis concreta
+;recibe la sintaxis concreta una lista y la convierte a una lista de cons en sintaxis concreta (hablando de listas de nuestro elnguaje)
 (define (conv p)
   (cond
     [(empty? p)  (list 'Empty )  ]
@@ -145,14 +145,6 @@
   )
 
 
-
-;funcion-elegidora:: List[expr] -> List[expr y o valores]
-;aqui la funcion elegira al elemento de la lista lo interpretamos o lo cambiamos a exprV
-;(define (funcion-elegidora list) ;[list (num 1 ) (prim-ap ...)]  
-
-                                                 
-
-
 ; parse-pattern :: sexpr -> Pattern
 (define(parse-pattern p)
   (match p
@@ -163,10 +155,10 @@
     [(list ctr patterns ...) (constrP (first p) (map parse-pattern patterns))]))
 
 ;; interp :: Expr Env -> number/boolean/procedure/Struct
-(define(interp expr env)
+(define(interp expr env )
   (match expr
     ; literals
-    [(num n) n]
+    [(num n) n] 
     [(bool b) b]
     [(str s) s]
     ; conditional 
@@ -182,7 +174,6 @@
         (def ammmm (cdr arg-vals))
         (def new-arg   (map (λ (a) (interp a ammmm)) (car arg-vals))    )
         (interp body (extend-env ids new-arg env)))]
-   
     ; application
     [(app fun-expr arg-expr-list)   ;  arg-expr-list -> (list (num 1) (prim-ap ....))
      (cond
@@ -208,35 +199,19 @@
      (interp body new-env)]
     ; pattern matching
 
-
     [(mtch expr cases)
      (def value-matched (interp expr env))
- (cond
-       [ (structV? value-matched )
-         (cond
-           [(empty? (structV-values value-matched))
-            (def (cons alist body) (find-first-matching-case value-matched cases))
-            (interp body (extend-env (map car alist) (map cdr alist) env))]
-           [(Expr? (first (structV-values value-matched)))
-            (def new-struct (structV(structV-name value-matched)(structV-variant value-matched)(map (lambda (a) (interp a env )) (structV-values value-matched) )))
-            (def (cons alist body) (find-first-matching-case new-struct cases))
-            (interp body (extend-env (map car alist) (map cdr alist) env))]
-           [else ;(and (> (largo (structV-values value-matched ) )1 ) (structV? (second (structV-values value-matched ))))  ;caso recursivo
-            (def (cons alist body) (find-first-matching-case value-matched cases))
-            (interp body (extend-env (map car alist) (map cdr alist) env))]
-           )]
-       [else
+     (cond
+       [(or (number? value-matched)(boolean? value-matched)) ;caso normal
         (def (cons alist body) (find-first-matching-case value-matched cases))
-          (interp body (extend-env (map car alist) (map cdr alist) env))])])
-
- 
-     ;(def new-struct (structV  (structV-name value-matched)  (structV-variant value-matched)  (map (lambda (a) interp a env ) (structV-values value-matched) ) ))
-   
-  ;   (def (cons alist body) (find-first-matching-case value-matched cases))
-  ;   (interp body (extend-env (map car alist) (map cdr alist) env))]
+        (interp body (extend-env (map car alist) (map cdr alist) env))]
+       [(structV? value-matched)
+        (def valoresevaluados(strictver2 (structV-values value-matched)))  ;evalua las cosas (lo de la promesa)
+      (def (cons alist body) (find-first-matching-case (structV (structV-name value-matched)(structV-variant value-matched) valoresevaluados) cases))
+        (interp body (extend-env (map car alist) (map cdr alist) env))]
+       )
+    ]))
     
-)
-
 ;sacar :: List[symbol and list] -> List[symbol]
 ;saca el valor de una list(list x (list 'lazy y)) -> (list x y)
 (define (sacar l)
@@ -248,7 +223,8 @@
           [else           (cons (second val) (sacar  (cdr l)))])))
   )
 
-;crea clausura para funciones
+;crecl :: fun -> clousure
+;funcion que crea clausura para funciones
 (define (creacl funcion env)    ;(fun ids body)
      (clousureV (fun-id funcion )
                 (fun-body funcion)
@@ -295,7 +271,7 @@
   (def argumentostipo (variant-params var))
   ;; variant data constructor, eg. Zero, Succ
   (update-env! varname
-                (λ (args ) (structV name varname (guarda-list-expr2 argumentostipo (car args)  (cdr args)) )   )
+                (λ (args ) (structV name varname (guarda-list-expr2 argumentostipo (car args)  (cdr args)) )   ) ; args es un (cons  lista_arg  ambiente) 
               ; (λ (arg-env) arg-env  )
               ;  (λ (v) v)
                env)
@@ -303,21 +279,19 @@
   (update-env! (string->symbol (string-append (symbol->string varname) "?"))
               ; (λ (v) (symbol=? (structV-variant (first v)) varname))
               ; (λ (v) v)
-              (λ (v) (symbol=? (structV-variant (interp (first (car v))  (cdr v))) varname)    ) ;uno de esos first lo tengo q cambiar a car
-              
+              (λ (v) (symbol=? (structV-variant (interp (first (car v))  (cdr v))) varname) )  ; v es un (cons  lista  ambiente) 
                env))
 
-
-
-
+;guarda-list-expr2:: List[symbol|list] List[expr]  -> List[expr | exprV]
+;funcion encargada de ver si se evalua un argumento de inmediato o se deja una promesa, es decir se guarda como una exprV
 (define (guarda-list-expr2 arg arg-expr-list fenv)     ;arg = (list x (lazy y))
   (if (empty? arg-expr-list)                                    ;arg-expr-list = (list (num 1 ) (prim-app ...))
       '()
       (let ([id (car arg)  ]
             [val(car arg-expr-list) ])
-        (cond
-          [(symbol? id) (cons (interp val fenv)   (guarda-list-expr2  arg  (cdr arg-expr-list) fenv)  )   ]
-          [ else   (cons  val  (guarda-list-expr2 (cdr arg ) (cdr arg-expr-list) fenv)  )    ])
+        (cond                           ;tengo q crear al o para los casos recursivos
+          [(symbol? id) (cons (interp val fenv)   (guarda-list-expr2  (cdr arg)  (cdr arg-expr-list) fenv)  )   ] ;caso en que si se deve evaluar 
+          [ else   (cons  (exprV val fenv (box #f) )  (guarda-list-expr2 (cdr arg ) (cdr arg-expr-list) fenv)  )    ]) ;caso lazy se crear una exprV
         
   )))
 
@@ -338,7 +312,7 @@
 
 (define(match-pattern-with-value pattern value)
   (match/values (values pattern value)
-                [((idP i) v) (list (cons i v))]
+                [((idP i) v) (list (cons i v))] 
                 [((litP (bool v)) b)
                  (if (equal? v b) (list) (list #f))]
                 [((litP (num v)) n)
@@ -383,7 +357,7 @@ update-env! :: Sym Val Env -> Void
 
 ;;;;;;;
 
-;;; primitives
+;;; primitives 
 ; http://pleiad.cl/teaching/primitivas
 (define *primitives*
   `((+       ,(lambda args (apply + args)))
@@ -409,9 +383,8 @@ update-env! :: Sym Val Env -> Void
 
 
 
-;;;
-
-
+;largo :: List -> val
+;funcion que me entrega el largo de una lista
 (define (largo lst)
   (cond
     [(empty? lst)  0]
@@ -453,14 +426,15 @@ update-env! :: Sym Val Env -> Void
          (cond
            [(number? val )  val]
            [(equal? (structV-name val)'List) (listasbonitas (prr val ))]
-           [else (format "{ ~a ~a } "(structV-variant val)(tt2 (structV-values val) (structV-variant val) ))])]
-        [else  val ])))
- )
+           [else
+            (def listaarg (strictver2 (structV-values val)) ) ;primero queremos evaluar las promesas o sacarlas nomas
+            (format "{ ~a ~a } "(structV-variant val) (tt2 listaarg (structV-variant val) ))])]
+        [else  (saca-expr-de-exprV val) ]))))   ;saca-expr-de-exprV  lo puse aca porque si no me devolvia una structu donde algunos valores eran exprV y eso era gigante
+ 
 
+;tt2 :: List|val -> String
+;funcion que transforma una struct en string bonito y calcula si esque hay una promesa  b = (structV)
 
-
-;tt :: List|val -> String
-;funcion que transforma una struct en string bonito
 (define (tt2 b nombre)
   (if (empty? b)
       ""
@@ -470,7 +444,9 @@ update-env! :: Sym Val Env -> Void
           [else (format "~a ~a"primval (tt (cdr b))) ]))
       )
   )
-;en caso de ser recursiva agregar nombre variant
+
+;agrega :: structV -> string
+;en caso de ser recursiva agregar nombre variant cuando se esta imprimiendo una estructura
 (define (agrega b nombre)
   (format "{ ~a ~a }" nombre (tt2 b) )) ;(1 (2 3))
 
@@ -494,7 +470,8 @@ update-env! :: Sym Val Env -> Void
 
 
 ;tt :: List|val -> String
-;funcion que recibe una lista o valor y si es un valaor lo retorna pero sii es una lista llama a la anterir para ver que hacer con ella
+;funcion que recibe una lista o valor y si es un valaor lo retorna pero si es una lista llama a la anterir para ver que hacer con ella
+;esta funncion esta para los casos recursivos
 (define (tt b)
   (if (empty? b)
       ""
@@ -522,45 +499,102 @@ update-env! :: Sym Val Env -> Void
            inval))]
     [else val]))
 
+;saca-expr-de-exprV:: structV -> void
+;funcion que va recorriendo de a uno la lista de argumentos de un struct y vaa ir sacando la expr si esque hay una promesa
+(define (saca-expr-de-exprV structura) 
+  (cond
+    [(structV? structura)(let ([ nombre    (structV-name structura)]
+                               [ variante  (structV-variant structura)]
+                               [valores    (structV-values structura)])
+                           (structV nombre variante (map (lambda(valor)
+                                                           (if (not (exprV? valor)) valor
+                                                               (cambiarexpr valor))) valores ))  )]
+    [else structura ]))
+
+;strictver2 ::List[exprV|expr] -> List[expr]
+;funcion que retorna la lista de exprsione evaluada con la ayuda de la funcion sacaboxito  
+(define (strictver2 valor)   ;le pasamos la lista de expresiones   
+  (let ([lista (map (lambda(v) (cond
+                                 [(not (exprV? v)) v]
+                                 [(structV? v) (strictver2  (structV-values))]
+                                 [else  (sacaboxito v)]
+                                 )) valor )])
+    lista))
+ 
+ 
+
+
+       
+;;sacaboxito ::ExprV -> val}
+;funcion encargada de ver el cache, si tiene false calcula al expresion si no retorna el cache
+(define (sacaboxito expresionv)
+  (let ([  expr (exprV-expr  expresionv)  ]
+        [  ambiente (exprV-env  expresionv)  ]
+        [  cachesito (exprV-cache  expresionv)  ])
+    (if (unbox cachesito)
+        (begin (unbox cachesito))  ;si hay algo
+        (let ([inval (interp expr ambiente) ]) ;no hay , lo calculamos
+          (set-box! cachesito inval)          ; lo ponemos en el cache
+          inval                               ;lo retronamos
+          ))))
+
+ 
+
+;cambiarexpr :: exprV -> expr
+;funcion que saca la expr de un una exprV y la evalua 
+(define (cambiarexpr valor)
+  (exprV-expr valor))
+
+;--------------PROBLEMAS-----------------------
+
+;(run '{local {{define funcion {fun {x  {lazy y}}x} }
+;              {define x  {funcion 1 {/ 1 0}}}}   ;lo está evaluando
+;                x } )
+
+
+(parse '{local {{define funcion {fun {x  {lazy y}}x} }} 
+                {funcion 1 {/ 1 0}} } )
+
+(run '{local {{define funcion {fun {x  {lazy y}}x} }} 
+                {funcion 1 {/ 1 0}} } )
+
+
+ 
 
 
 
 
-(run '{local {{datatype T {C a {lazy b}}}
-                {define x {C  0 {+ 1 2}}}}
-               x} "pp")
+;--------------STREAM--------------------------
+
+(def stream-data '{datatype stream
+                            {S a {lazy b}}})
+
+;Defina la función (make-stream hd tl) en MiniScheme+ que construye un stream basado en la estructura anterior.
+
+(def make-stream '{define make-stream {fun {hd {lazy tl} }
+                                           {S hd  tl}}})
+                                           
+;Con la función (make-stream hd tl), podemos definir un stream infinito de 1s.   
+
+(def ones '{define ones {make-stream 1 ones}})
+
+;Defina las funciones stream-hd y stream-tl para obtener la cabeza y la cola de un stream. Por ejemplo:
+(def stream-hd '{define stream-hd {fun{stream}
+                                      {match stream
+                                        {case {S uno dos} => uno}}
+                                       }})
+
+(def stream-tl '{define stream-tl {fun{stream}
+                                      {match stream
+                                        {case {Cons uno dos} => dos}}
+                                       }})
 
 
 
 
 
-; (run '{local {{datatype Nat                                                    ;ejemplo enunciado
-;                  {Zero} 
-;                  {Succ n}}
-;                {define pred {fun {n} 
-;                               {match n
-;                                 {case {Zero} => {Zero}}
-;                                 {case {Succ m} => m}}}}}
-;          {pred {Succ {Succ {Succ {Zero}}}}}} "ppwu")
-
-
-
-
-; (run '{match {list 2 {list 4 5} 6}           ;ejemplo enunciado
-;          {case {list a {list b c} d} => c}}) ;5)
-
-
-
-
-;(run '{match 2
-;                {case 1 => 2}
-;                {case 2 => 3}})
-;        
-
-;(run '{local {{datatype T 
-;                  {C {lazy a}}}
-;                {define x {C {/ 1 1}}}}
-;          {match x
-;            {case {C a} => a}}})
-;"/: division by zero"
-; (run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}}) 
+;(parse `{local {,stream-data ,make-stream
+;                             ,stream-hd ,stream-tl ,ones}
+;          1})
+;(run `{local {,stream-data ,make-stream                             ,stream-hd ,stream-tl ,ones}
+;          {stream-hd {stream-tl ones}}})

@@ -20,20 +20,42 @@
                 {+ x x}}) 4)
 
   ;; datatypes
-  (test (run '{local {{datatype List {Empty} {Cons a b}}} {List? {Empty}}}) #t)
+  (test (run '{local
+                {{datatype List
+                           {Empty}
+                           {Cons a b}}}
+                {List? {Empty}}}) #t)
 
-  (test (run '{local {{datatype List {Empty} {Cons a b}}} {Empty? {Empty}}}) #t)
+  (test (run '{local {{datatype List
+                                {Empty}
+                                {Cons a b}}}
+                {Empty? {Empty}}}) #t)
 
-  (test (run '{local {{datatype List {Empty} {Cons a b}}} {List? {Cons 1 2}}}) #t)
+  (test (run '{local {{datatype List
+                                {Empty}
+                                {Cons a b}}}
+                {List? {Cons 1 2}}}) #t)
 
-  (test (run '{local {{datatype List {Empty} {Cons a b}}} {Cons? {Cons 1 2}}}) #t)
+  (test (run '{local {{datatype List
+                                {Empty}
+                                {Cons a b}}}
+                {Cons? {Cons 1 2}}}) #t)
 
-  (test (run '{local {{datatype List {Empty} {Cons a b}}} {Empty? {Cons 1 2}}})
+  (test (run '{local {{datatype List
+                                {Empty}
+                                {Cons a b}}}
+                {Empty? {Cons 1 2}}})
         #f)
 
-  (test (run '{local {{datatype List {Empty} {Cons a b}}} {Empty? {Empty}}}) #t)
+  (test (run '{local {{datatype List
+                                {Empty}
+                                {Cons a b}}}
+                {Empty? {Empty}}}) #t)
 
-  (test (run '{local {{datatype List {Empty} {Cons a b}}} {Cons? {Empty}}})
+  (test (run '{local {{datatype List
+                                {Empty}
+                                {Cons a b}}}
+                {Cons? {Empty}}})
         #f)
 
   ;; match
@@ -60,6 +82,8 @@
                                           {case {Succ m} => m}}}}}
                 {Succ? {pred {Succ {Succ {Zero}}}}}})
         #t)
+
+  
   (test (run '{local {{datatype Nat
                                 {Zero}
                                 {Succ n}}
@@ -104,4 +128,100 @@
                  {stream-take 10 {merge-sort fibs fibs}}}} "pp")   "{list 1 1 1 1 2 2 3 3 5 5}"))
 
 ;WARM-UP
+
+(test (pretty-printing (structV 'Nat 'Succ (list (structV 'Nat 'Zero empty))))      ;ejemplo enunciado
+"{Succ {Zero}}")
+
+;(test (run '{local {{datatype Nat                                                    ;ejemplo enunciado
+;                  {Zero} 
+;                  {Succ n}}
+;                {define pred {fun {n} 
+;                               {match n
+;                                 {case {Zero} => {Zero}}
+;                                 {case {Succ m} => m}}}}}
+;          {pred {Succ {Succ {Succ {Zero}}}}}} "ppwu")
+;"{Succ {Succ {Zero}}}")
+
+
+(test (run '{+ 1 1} "ppwu") 2)
+
+;LISTAS
+;parte 1
+(test (run '{Empty? {Empty}}) #t)                              ;ejemplo enunciado
+(test (run '{List? {Cons 1 2}}) #t)                            ;ejemplo enunciado
+;(test (run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}}) 3)    ;ejemplo enunciado
+
+ 
+;parte 2 (extender el lenguaje para soportar la notación '{list e1 e2 … en} )
+(test  (run '{match {list {+ 1 1} 4 6}   ;ejemplo enunciado
+          {case {Cons h r} => h}
+          {case _ => 0}})
+       2)
+
+(test (run '{match {list}                ;ejemplo enunciado
+          {case {Cons h r} => h}
+          {case _ => 0}})
+      0)
+
+
+;parte 3 (extender el lenguaje para soportar la notación '{list e1 e2 … en} para match)
+(test (run '{match {list 2 {list 4 5} 6}           ;ejemplo enunciado
+          {case {list a {list b c} d} => c}}) 5)
+
+
+
+(test (run '{Cons 1 {Cons 2 {Empty}}})  (structV 'List 'Cons (list 1 (structV 'List 'Cons (list 2 (structV 'List 'Empty '()))))))
+(test (run '{Cons 1 {Cons 2 {Empty}}} "ppwu") "{Cons 1 {Cons 2 {Empty}}}")
+
+(test (run '{Cons 1 {Cons {Cons 2 3 } {Empty}}}) (structV 'List 'Cons (list 1 (structV 'List 'Cons (list (structV 'List 'Cons '(2 3)) (structV 'List 'Empty '()))))))
+(test (run '{Cons 1 {Cons {Cons 2 3 }}} "ppwu")  "{Cons 1 {Cons {Cons 2 3}}}" )
+
+;parte 4 poner vbonitas las listas
+
+(test (run '{list 1 4 6} "pp") "{list 1 4 6 }")
+(test (run '{list} "pp") "{list }")
+(test (run '{list 1 (list 3 4) 6} "pp") "{list 1 {list 3 4 } 6 }")
+
+
+
+;IMPLEMENTACION LAZY
+(test (run '{{fun {x  {lazy y}} x} 1 {/ 1 0}}) 1)
+
+; (test/exn (run '{{fun {x  y} x} 1 {/ 1 0}}) "/: division by zero")    PORQUE ME ALEGA????????????????
+
+
+;(interp (lcal (list                                 ;ESTO ALEGA DIVISION POR CERO
+;            (datatype 'T
+;                      (list
+;                       (variant 'C '(a))))
+;            (dfine 'x
+;                   (app (id 'C)
+;                        (list (prim-app '/ (list (num 1) (num 0)))))))
+;          (app (id 'C?) (list (id 'x))) ) empty-env)
+
+
+;COSAS QUE DESPUES TENGO QUE ELIMINAR
+
+
+
+;(convertir-a-cons {list 2 {list 4 5} 6})
+;(define c1 (list 2 (list 4 5) 6))
+;(define c2 (cons 2 (cons (cons 4 (cons 5 '())) (cons 6 '() ))))
+;(define uno '(list 2 (list 4 5) 6))
+;(define dos '(cons 2 (cons (cons 4 (cons 5 (Empty))) (cons 6 (Empty) ))))
+;(parse dos)
+;(parse uno)
+
+
+
+
+;(parse '{match (Cons 1 (Cons (Cons 2 (Cons 3 (Empty))) (Cons 4 (Empty) )))
+;          {case (Cons a (Cons (Cons b (Cons c (Empty))) (Cons d (Empty) ))) => c}})
+
+
+;(parse '{match {list 1 {list 2 3} 4}
+;         {case {list a {list b c} d} => c}})
+
+;(parse '{list a {list b c} d})
+;(parse '(Cons a (Cons (Cons b (Cons c (Empty))) (Cons d (Empty) ))))
 

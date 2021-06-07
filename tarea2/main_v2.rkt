@@ -172,7 +172,6 @@
         (def ammmm (cdr arg-vals))
         (def new-arg   (map (λ (a) (interp a ammmm)) (car arg-vals))    )
         (interp body (extend-env ids new-arg env)))]
-   
     ; application
     [(app fun-expr arg-expr-list)   ;  arg-expr-list -> (list (num 1) (prim-ap ....))
      (cond
@@ -356,7 +355,7 @@ update-env! :: Sym Val Env -> Void
 
 ;;;;;;;
 
-;;; primitives
+;;; primitives 
 ; http://pleiad.cl/teaching/primitivas
 (define *primitives*
   `((+       ,(lambda args (apply + args)))
@@ -544,4 +543,42 @@ update-env! :: Sym Val Env -> Void
 (define (cambiarexpr valor)
   (exprV-expr valor))
 
-;
+
+;--------------STREAM--------------------------
+
+(def stream-data '{datatype stream
+                            {S a {lazy b}}})
+
+;Defina la función (make-stream hd tl) en MiniScheme+ que construye un stream basado en la estructura anterior.
+
+(def make-stream '{define make-stream {fun {hd {lazy tl} }
+                                           {S hd  tl}}})
+                                           
+;Con la función (make-stream hd tl), podemos definir un stream infinito de 1s.   
+
+(def ones '{define ones {make-stream 1 ones}})
+
+;Defina las funciones stream-hd y stream-tl para obtener la cabeza y la cola de un stream. Por ejemplo:
+(def stream-hd '{define stream-hd {fun{stream}
+                                      {match stream
+                                        {case {S uno dos} => uno}}
+                                       }})
+
+(def stream-tl '{define stream-tl {fun{stream}
+                                      {match stream
+                                        {case {Cons uno dos} => dos}}
+                                       }})
+
+
+
+ (parse '{{fun {x  {lazy y}} x} 1 {/ 1 0}})
+
+
+
+
+
+(parse `{local {,stream-data ,make-stream
+                             ,stream-hd ,stream-tl ,ones}
+          1})
+(run `{local {,stream-data ,make-stream                             ,stream-hd ,stream-tl ,ones}
+          {stream-hd {stream-tl ones}}})
