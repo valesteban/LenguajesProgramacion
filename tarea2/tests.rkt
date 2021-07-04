@@ -8,7 +8,7 @@
 ;tenía una falla que no logré encontrar
 
 ;Cosas que asumi :
-; no s eva  intertar ppwu con estructuras, sino que se va a ocupar pp
+; pp es solo para listas
 
 ;como hice las cosas:
 ;para extender el lenguajes a lista hice que en la sintaxis conreta al recibir una lista esta la convertia en sintaxis concreta de un cos y luego
@@ -276,9 +276,9 @@
 ;IMPLEMENTACION LAZY
 (test (run '{{fun {x  {lazy y}}
                   x} 1 {/ 1 0}}) 1)
-(run '{local {{define funcion {fun {x  {lazy y}}x} }
+(test/exn  (run '{local {{define funcion {fun {x  {lazy y}}x} }
               {define x  {funcion 1 {/ 1 0}}}}
-                x } )
+                x } ) "division by zero")
 
 (test/exn (run '{{fun {x  y} x} 1 {/ 1 0}}) "division by zero")
 

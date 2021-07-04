@@ -1,0 +1,63 @@
+FUNCIONES EXTRAS QUE TENGO
+
+
+
+
+
+     [(object expre lista-field lista-metodos)
+      ;se evalua primero expr (si esque es algo)
+      (if (equal? 'NO expre) (void) (interp  expr   env) )
+      ;vamos a crear un nuevo ambiente que será el del objeto que recordara sus fields y nose aun si sus metodos
+       (let ([ new-env (multi-extend-env '() '() env)    ])      ;creamos el ambiente [en un comienzo esta vacio]
+        (for-each (λ(f)                                         ;(objectV  fields metodos exp amb)
+                   (def (cons id val) (cons ( field-nombre f) (interp (field-valor f) env)))
+                   (extend-frame-env! id val  new-env)           ;agrego los field a al env de mi objeco 
+                   #t) lista-field)                              ;no evaluo n i hago nada por m ientra con los metods (podria decirse evaluacion peresoza)
+                                                                 ; (hash-ref  (aEnv-hash new-env)  'x))]
+         (objectV expre lista-field lista-metodos new-env))]  ;creo el objectV
+
+
+
+---OBJETOS SIMPLES-------------------------------------
+    
+ (parse '(object
+          (field y 2)))
+
+ (parse '(object
+          (field x 1)
+          (field y 2)))
+
+ (parse '(object
+          (method rest (e) (- e 1))
+          ))
+
+ (parse '(object
+          (method sum (z) (+ z 2))
+          (method rest (e) (- e 1) )
+          ))
+
+
+
+(parse '(local
+              [(define o (object
+                          (field x 1)
+                          (field y 2)
+                          (method estacosa () this )))]
+           (send o estacosa )))
+
+
+
+
+----------------------------------------------------------------------------------------
+
+(lcal
+ (list (my-def 'smart-computer (object 'NO
+                                       '()
+                                       (list (method 'secret? '(something) (num 42)))))
+       (my-def 'everything (object 'NO
+                                   '()
+                                   '()))
+       (my-def 'oracle (object (id 'smart-computer)
+                               '()
+                               '())))
+ (send 'oracle 'secret? (list (id 'everything))))

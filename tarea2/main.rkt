@@ -3,6 +3,7 @@
 
 (print-only-errors #t)
 
+
 #|
 <expr> ::= <num>
          | <bool>
@@ -545,21 +546,6 @@ update-env! :: Sym Val Env -> Void
 (define (cambiarexpr valor)
   (exprV-expr valor))
 
-;--------------PROBLEMAS-----------------------
-
-;(run '{local {{define funcion {fun {x  {lazy y}}x} }
-;              {define x  {funcion 1 {/ 1 0}}}}   ;lo está evaluando
-;                x } )
-
-
-(parse '{local {{define funcion {fun {x  {lazy y}}x} }} 
-                {funcion 1 {/ 1 0}} } )
-
-(run '{local {{define funcion {fun {x  {lazy y}}x} }} 
-                {funcion 1 {/ 1 0}} } )
-
-
- 
 
 
 

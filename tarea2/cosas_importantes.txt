@@ -1,79 +1,59 @@
+#0=(aEnv
+    (list
+     (cons
+      'length
+      (clousureV '(n) (mtch (id 'n) (list (cse (constrP 'Empty '()) (num 0)) (cse (constrP 'Cons (list (idP 'm1) (idP 'm2))) (prim-app '+ (list (num 1) (app (id 'length) (list (id 'm2)))))))) #0#))
+     (cons 'Cons? (clousureV 'Y #f #0#))
+     (cons 'Cons (clousureV #1='(n1 rec) (structV 'List 'Cons #1#) #0#))
+     (cons 'Empty? (clousureV 'Y #f #0#))
+     (cons 'Empty (clousureV '() (structV 'List 'Empty '()) #0#))
+     (cons 'List? (clousureV 'X #f #0#)))
+    (mtEnv))
 
-;run :: src -> structV | val | string
-;parsea, interpreta y convierte sructuras a valores string mas amigables
-(define(run prog [flag ""])
-  (let ([l `{local {{datatype List 
-                  {Empty} 
-                  {Cons n1 rec}}
-                {define length {fun {n} 
-                               {match n
-                                 {case {Empty} => 0 }
-                                 {case {Cons m1 m2 } => {+ 1 { length m2 } }}}}}} ,prog }])
-    
-    (let ([val (interp (parse l) empty-env ) ])
-      (cond
-        [(equal? "ppwu" flag) (if (number? val )  val (pretty-printing val ))]
-        [(equal? "pp" flag)
-         (cond
-           [(number? val )  val]
-           [(equal? (structV-name val)'List) (listasbonitas (prr val ))]
-           [else
-            (def listaarg (strictver2 (structV-values val)) ) ;primero queremos evaluar las promesas o sacarlas nomas
-            (format "{ ~a ~a } "(structV-variant val) (tt2 listaarg (structV-variant val) ))])]
-        [else  (saca-expr-de-exprV val) ]))))   ;saca-expr-de-exprV  lo puse aca porque si no me devolvia una structu donde algunos valores eran exprV y eso era gigante
- 
+
+
+
 (lcal
- (list
-  (datatype 'stream (list (variant 'S '(a (lazy b)))))
-  (dfine 'make-stream (fun '(hd tl) (app (id 'S) (list (id 'hd) (id 'tl)))))
-  (dfine 'stream-hd (fun '(stream) (mtch (id 'stream) (list (cse (constrP 'S (list (idP 'uno) (idP 'dos))) (id 'uno))))))
-  (dfine 'stream-tl (fun '(stream) (mtch (id 'stream) (list (cse (constrP 'Cons (list (idP 'uno) (idP 'dos))) (id 'dos))))))
-  (dfine 'ones (app (id 'make-stream) (list (num 1) (id 'ones)))))
- (num 1))
+(list 
+(dfine 'funcion (fun '(x (lazy y)) (id 'x)))
+(dfine 'x (app (id 'funcion) (list (num 1) (prim-app '/ (list (num 1) (num 0))))))) (id 'x))
+> 
 
 
 
-
-#Remove punctuations = !"#$%&\'()*+,-./:;<=>?@[\\]^_`{|}~
-
-def limpiar(text):
-  text = re.sub("@[A-Za-z0-9]+","",text) #Remove @ sign
-  text= re.sub(r'https.?://[^\s]+[\s]?', '', text) #eliminar lis links y esas cosas raras
-  text = re.sub(r'pic.twitter.com/[\w]*',"", text) #elimina imagenes
-  text  = "".join([char for char in text if char not in string.punctuation]) #eliminamos todas las cosas raras restantes
-  text = re.sub('[0-9]+', '', text) #elimina numeros
-  return text
-
-data['text_clean'] = data['text'].apply(lambda x: limpiar(x))
     
-data[['text','text_clean']]
+;sacar :: List[symbol and list] -> List[symbol]
+;saca el valor de una list(list x (list 'lazy y)) -> (list x y)
+(define (sacar l)
+  (if (empty? l)
+      '()
+      (cond
+        [(symbol? l ) l ]
+        [else
+         (let ([ val (car l) ])
+           (cond
+             [(symbol? val ) (cons val (sacar  (cdr l)))]
+             [else           (cons (second val) (sacar  (cdr l)))]))])
+
+;crecl :: fun -> clousure
+;funcion que crea clausura para funciones
+(define (creacl funcion env)    ;(fun ids body)
+     (clousureV (fun-id funcion )
+                (fun-body funcion)
+                env))
 
 
-
-
-
-(aEnv
- '((stream-tl . #<procedure:.../tarea2/main_v2.rkt:171:6>)
-   (stream-hd . #<procedure:.../tarea2/main_v2.rkt:171:6>)
-   (make-stream . #<procedure:.../tarea2/main_v2.rkt:171:6>)
-   (S? . #<procedure:.../tarea2/main_v2.rkt:281:14>)
-   (S . #<procedure:.../tarea2/main_v2.rkt:273:16>)
-   (stream? . #<procedure:.../tarea2/main_v2.rkt:262:15>))
- (aEnv
-  '((length . #<procedure:.../tarea2/main_v2.rkt:171:6>)
-    (Cons? . #<procedure:.../tarea2/main_v2.rkt:281:14>)
-    (Cons . #<procedure:.../tarea2/main_v2.rkt:273:16>)
-    (Empty? . #<procedure:.../tarea2/main_v2.rkt:281:14>)
-    (Empty . #<procedure:.../tarea2/main_v2.rkt:273:16>)
-    (List? . #<procedure:.../tarea2/main_v2.rkt:262:15>))
-  (mtEnv)))
-(structV 'T 'C (list 0 (prim-app '/ (list (num 1) (num 0)))))
-
-
-
-
-
-
-
-
-
+;guarda-list-expr :: List[arg] List[expr] -> List[expr y exprV]
+;funcion encargada de dejar en la lista el valor numerico o la expresion/contrato, es asi como se van a guardar en el ambiente
+(define (guarda-list-expr arg arg-expr-list fenv)     ;arg = (list x (lazy y))
+  (if (empty? arg)                                    ;arg-expr-list = (list (num 1 ) (prim-app ...))
+      '()
+      (cond
+        [(symbol? arg ) arg ]
+        [else
+         (let ([id (car arg)  ]
+               [val(car arg-expr-list) ])
+           (cond
+             [(symbol? id) (cons (interp val fenv)   (guarda-list-expr (cdr arg ) (cdr arg-expr-list) fenv)  )   ]
+             [ else   (cons (exprV val fenv (box #f)) (guarda-list-expr (cdr arg ) (cdr arg-expr-list) fenv)  )    ]))])
+        

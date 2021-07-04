@@ -169,13 +169,37 @@
     ; function (notice the meta interpretation)
     [(fun ids body)
       (λ (arg-vals)
-        (def ammmm (cdr arg-vals))
-        (def new-arg   (map (λ (a) (interp a ammmm)) (car arg-vals))    )
-        (interp body (extend-env ids new-arg env)))]
+        (def ammmm (car arg-vals)) 
+        (def envvv (cdr arg-vals))
+        (cond
+          [(app? (first ammmm))  (def new-arg   (map (λ (a) (interp a env)) ammmm )    )
+                               (interp body (extend-env ids new-arg env))]
+          [else (clousureV ids body env) ] ))]
+       ;   [else
+       ;        (clousureV )]
+       
+      ;  (def new-arg   (map (λ (a) (interp a ammmm)) (car arg-vals))    )
+      ;  (interp body (extend-env ids new-arg env)))]
     ; application
     [(app fun-expr arg-expr-list)   ;  arg-expr-list -> (list (num 1) (prim-ap ....))
      (cond
-       [ ( id? fun-expr)    ((interp fun-expr env)(cons arg-expr-list env )  )] ;les paso su ambiente y valor ahic adoa uno decide si lo interpreta o no
+       [ ( id? fun-expr) (def res ((interp fun-expr env)(cons arg-expr-list env )  ))
+                         (cond
+                           [(clousureV? res) (def (clousureV arg body fenv) (clousureV (clousureV-arg res) (clousureV-body res) (clousureV-env res)))
+                                             (def argu (guarda-list-expr arg arg-expr-list fenv)  )
+                                             arg-expr-list]
+                                             ;(def new-arg-expr-list (guarda-list-expr arg arg-expr-list fenv) )]
+                                             ;(def new-list-ids (sacar arg)) ;(list x y z ...)
+                                             ;(def new-env  (extend-env new-list-ids
+                                             ;            new-arg-expr-list
+                                             ;            fenv) )
+                                           ;  (interp body new-env)]
+                           [else res])]
+
+
+
+
+                             ;les paso su ambiente y valor ahic adoa uno decide si lo interpreta o no
                              ;(map (λ (a) (interp a env)) arg-expr-list))] ;se busca id en el anbiente  {List? {Cons 1 2}}} -> (list (structV 'List 'Cons '(1 2)))
                                                                                                      ;{T? x}               -> (list (structV 'T 'C '(1)))         
 ;(app (id 'define) (list (id 'pred) (fun '(n) (mtch (id 'n) (list (cse (constrP 'Zero '()) (app (id 'Zero) '())) (cse (constrP 'Succ (list (idP 'm))) (id 'm)))))))   
@@ -276,7 +300,7 @@
   ;; variant predicate, eg. Zero?, Succ?
   (update-env! (string->symbol (string-append (symbol->string varname) "?"))
               ; (λ (v) (symbol=? (structV-variant (first v)) varname))
-              ; (λ (v) v)
+             
               (λ (v) (symbol=? (structV-variant (interp (first (car v))  (cdr v))) varname) )  ; v es un (cons  lista  ambiente) 
                env))
 
@@ -343,7 +367,7 @@ update-env! :: Sym Val Env -> Void
      (def binding (assoc id bindings))
      (if binding
          (cdr binding)
-         (env-lookup id rest))]))
+         (env-lookup id rest))])) 
 
 (define (extend-env ids vals env)
   (aEnv (map cons ids vals) ; zip to get list of pairs (id . val)
@@ -569,16 +593,48 @@ update-env! :: Sym Val Env -> Void
                                         {case {Cons uno dos} => dos}}
                                        }})
 
+(parse '{local {{datatype List 
+                  {Empty} 
+                  {Cons n1 rec}}
+                {define length {fun {n} 
+                               {match n
+                                 {case {Empty} => 0 }
+                                 {case {Cons m1 m2 } => {+ 1 { length m2 } }}}}}}
+        {length  {Cons 1 3}} })
+
+(run '{local {{datatype List 
+                  {Empty} 
+                  {Cons n1 rec}}
+                {define length {fun {n} 
+                               {match n
+                                 {case {Empty} => 0 }
+                                 {case {Cons m1 m2 } => {+ 1 { length m2 } }}}}}}
+
+        {length  {Cons 1 3}} })
+
+ (test (run '{local {{datatype Nat
+                                {Zero}
+                                {Succ n}}
+                      {define pred {fun {n}
+                                        {match n
+                                          {case {Zero} => {Zero}}
+                                          {case {Succ m} => m}}}}}
+                {pred {Succ {Zero}}}}) (structV 'Nat 'Zero '()))
+  ;      #t)
+
+ (test (run '{Empty? {Empty}}) #t)
+(test (run  '{local {{define funcion {fun {x  {lazy y}}{+ x x}} }
+              {define x  {funcion 1 {/ 1 0}}}}
+             x } ) 2)
 
 
- (parse '{{fun {x  {lazy y}} x} 1 {/ 1 0}})
+
+;(test (run '{length {Cons 1 {Cons 2 {Cons 3 {Empty}}}}}) 3)    ;ejemplo enunciado
 
 
 
-
-
-(parse `{local {,stream-data ,make-stream
-                             ,stream-hd ,stream-tl ,ones}
-          1})
-(run `{local {,stream-data ,make-stream                             ,stream-hd ,stream-tl ,ones}
-          {stream-hd {stream-tl ones}}})
+;(parse `{local {,stream-data ,make-stream
+;                             ,stream-hd ,stream-tl ,ones}
+;          1})
+;(run `{local {,stream-data ,make-stream                             ,stream-hd ,stream-tl ,ones}
+;          {stream-hd {stream-tl ones}}})
