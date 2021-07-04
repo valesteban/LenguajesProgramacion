@@ -163,6 +163,20 @@
            (send o sum 55 ))) 56)
 
 
+;se pueden ver entre ellos 
+(test (run-val '(local
+              [(define o1 (object
+                          (field z 4)
+                          (field w 5)
+                          (method amb () (+ 100 1))))
+               
+               (define o2 (object
+                          (field x 1)
+                          (field y 2)
+                          (method otro () {send o1 amb})))]
+           {send o2 otro})) 101)
+
+
 (test (run-val '(local
    [(define o (object
                (field x 1)
