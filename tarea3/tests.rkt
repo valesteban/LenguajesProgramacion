@@ -1,5 +1,5 @@
 #lang play
-(require "version2.rkt")
+(require "main.rkt")
 (print-only-errors)
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
@@ -127,17 +127,75 @@
 ;Se crea el objeto y se ocupa un metodo dentro de el (metodo que no necesita fields de el mismo o las expr get o set)
 
 (test (run-val '(local
-              [(define o (object
-                          (field x [+ 2 1])
-                          (field y 2)
-                          (method sum (a) (+ 100 a))
-                          (method get-y () (get y))))]
-           (send o sum 55 )))  155)
+                  [(define o (object
+                              (field x [+ 2 1])
+                              (field y 2)
+                              (method sum (a) (+ 100 a))
+                              (method get-y () (get y))))]
+                  (send o sum 55 )))  155)
 ;objeto son ni fields ni metodos
 (test  (run-val '(local
               [(define o (object
                         ))]
            {+ 100 40}))  140)
+
+;cosas diferentes con los fields
+(test (run-val '(local
+              [(define o (object
+                          (field x [+ 2 1])
+                          (field y this)
+                          (field z [get x])
+                          (method get-x () (get x))
+                          (method get-z () (get z))
+                          (method get-y () (get y))))]
+           (send o get-x ))) 3)
+
+(test (run-val '(local
+              [(define o (object
+                          (field x [+ 2 1])
+                          (field y this)
+                          (field z [get x])
+                          (method get-x () (get x))
+                          (method get-z () (get z))
+                          (method get-y () (get y))))]
+           (send o get-z ))) 3)
+
+ (test (run-val '(local
+              [(define o (object
+                          (field x [+ 2 1])
+                          (field y this)
+                          (field z [get x])
+                          (method get-x () (get x))
+                          (method get-z () (get z))
+                          (method get-y () (get y))))]
+           (send o get-y )))
+       (objectV
+ 'NO
+ (list
+  (field 'x (box (binop + (num 2) (num 1))))
+  (field 'y (box (this 'yo)))
+  (field 'z (box (get 'x))))
+ (list
+  (method 'get-x '() (get 'x))
+  (method 'get-z '() (get 'z))
+  (method 'get-y '() (get 'y)))
+ (mtEnv))
+)
+
+
+
+
+
+
+(test (run-val '(local
+              [(define o (object
+                          (field x [+ 2 1])
+                          (field y this)
+                          (field z [get x])
+                          (method get-x () (get x))
+                          (method get-z () (get z))
+                          (method get-y () (get y))))]
+           (send o get-x ))) 3)
 
 
 

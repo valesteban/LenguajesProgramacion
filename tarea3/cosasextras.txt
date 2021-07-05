@@ -1,20 +1,18 @@
-FUNCIONES EXTRAS QUE TENGO
+FUNCIONES
+
+(define (env-lookup x env)   ---> BUSCAR EN EL AMBIENTE
+(multi-extend-env ids exprs env)---> CREA UN NUEVO  AMBIENTE
+(def amb (multi-extend-env '() '() empty-env))
+
+(define (extend-frame-env! id val env)---> AGREGA UN NUEVO PAR 
 
 
 
 
 
-     [(object expre lista-field lista-metodos)
-      ;se evalua primero expr (si esque es algo)
-      (if (equal? 'NO expre) (void) (interp  expr   env) )
-      ;vamos a crear un nuevo ambiente que será el del objeto que recordara sus fields y nose aun si sus metodos
-       (let ([ new-env (multi-extend-env '() '() env)    ])      ;creamos el ambiente [en un comienzo esta vacio]
-        (for-each (λ(f)                                         ;(objectV  fields metodos exp amb)
-                   (def (cons id val) (cons ( field-nombre f) (interp (field-valor f) env)))
-                   (extend-frame-env! id val  new-env)           ;agrego los field a al env de mi objeco 
-                   #t) lista-field)                              ;no evaluo n i hago nada por m ientra con los metods (podria decirse evaluacion peresoza)
-                                                                 ; (hash-ref  (aEnv-hash new-env)  'x))]
-         (objectV expre lista-field lista-metodos new-env))]  ;creo el objectV
+
+
+
 
 
 
@@ -61,3 +59,26 @@ FUNCIONES EXTRAS QUE TENGO
                                '()
                                '())))
  (send 'oracle 'secret? (list (id 'everything))))
+
+
+
+-----------------------------------------------------------------------------
+
+(aEnv 
+ (hash 'o1 (objectV 'NO
+                    (list
+                     (field 'z (box (numV 4)))
+                     (field 'w (box (numV 5))))
+                 #0=(list
+                     (method 'amb '() (binop #<procedure:+> (num 100) (num 1))))
+                 #1=(aEnv (hash 'yo (box (objectV 'NO
+                                                  (list (field 'z (box (numV 4)))
+                                                  (field 'w (box (numV 5))))
+                                                  #0##1#)))
+                          #2=(mtEnv)))
+       'o2 (objectV 'NO
+                    (list
+                     (field 'x (box (numV 1)))
+                     (field 'y (box (numV 2))))
+                    #3=(list (method 'amb '() (id 'aaa)))
+                    #4=(aEnv

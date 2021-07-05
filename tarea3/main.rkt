@@ -225,10 +225,10 @@ Este método no crea un nuevo ambiente.
   (match expr
     [(num n) (numV n)]
     [(bool b) (boolV b)]
-    [(binop f l r)
+    [(binop f l r)     
       (make-val (f (open-val (interp l env))
-                   (open-val (interp r env))))] 
-    [(unop f s) (make-val (f (open-val (interp s env))))]
+                   (open-val (interp r env))))]
+    [(unop f s) (make-val (f (open-val (interp s env))))] 
     [(my-if c t f)
      (def (boolV cnd) (interp c env))
      (if cnd
@@ -269,7 +269,7 @@ Este método no crea un nuevo ambiente.
      ;buscamos el metodo dentro del objeto
      (def (method nombre listavalores-sinnum cuerpo)(buscar-met metodoss nombremet))  ;  (method sum () (+ 1 2))
 
-
+ 
 
      ;interpreto los valorres de la lista de argumentos
      (def listayainterpreta (map (lambda(l ) (interp l env)) lista-val-num))
@@ -281,21 +281,22 @@ Este método no crea un nuevo ambiente.
      ;--> mostrar el ambiente new-env --> new-env
      ;--> pregunto al hash un valor -->(hash-ref (aEnv-hash new-env) 'a )
      (interp cuerpo new-env )
+     ;new-env
      
 
       ]
     [(get nombrefield)
      ;buscamos ese field en el ambiente del objeto que solo se tiene a si mismo
      (def (field nombre boxito)(buscar-field-suyo nombrefield env)) ;(field 'y (box (numV 5)))
-     (unbox boxito)]
+     (interp (unbox boxito) env )]
     [(set indi val) 
-    (def valnum (env-lookup val env))
+    (def valnum (make-expr (env-lookup val env)))
     (set-box! (field-valor (buscar-field-suyo indi env)) valnum ) ;cambia el valor
     ]
     [(this 'yo)
      (def miobjetolindo(env-lookup 'yo env))
-     (unbox miobjetolindo)
-     ]
+     miobjetolindo
+     ] 
     ))
      
        
@@ -322,7 +323,7 @@ Este método no crea un nuevo ambiente.
   (if (empty? fields )
       empty
       (let ([fielddd (car fields)])
-        (let ([ valor (interp  (field-valor fielddd ) env) ]
+        (let ([ valor  (field-valor fielddd ) ];no lo vamos a interpretar porque yo quise que fuese evaluacion perezosa
               [ nombre (field-nombre fielddd) ])
           (cons (field nombre (box valor) )   (cambia-box-fields (cdr fields) env)   )
     ))))
@@ -346,14 +347,22 @@ Este método no crea un nuevo ambiente.
  
      
 
-
+;;make-expr :: Val  -> expr
+; funcion que transforma uno de nuestro valores a una expresion
+(define (make-expr  s)
+  (match s
+    [(numV v) (num v) ]
+    [(boolV b) (bool b)]
+    ))
 
 ;; open-val :: Val -> Scheme Value
 (define (open-val v)
   (match v
     [(numV n) n]
     [(boolV b) b]
-    [ else v]
+    [(num n) n]
+  ;  [(bool b) b]
+  ;  [ else v]
     ))
 
 ;; make-val :: Scheme Value -> Val
@@ -361,11 +370,15 @@ Este método no crea un nuevo ambiente.
   (match v
     [(? number?) (numV v)]
     [(? boolean?) (boolV v)]
+ ;   [(? num? ) (numV (num-n v))]
+ ;   [(? bool?) (boolV (bool-b v))]
+   
     ))
 
 ;; interp-def :: Def, Env -> Expr
 (define (interp-def a-def env)
   (match a-def
+    ;[(my-def id body) (cons id (interp body env))]))
     [(my-def id body) (cons id (interp body env))]))
 
 ;; run :: s-expr -> Val
@@ -385,16 +398,11 @@ valores de MiniScheme para clases y objetos
     [x x]))
 
 
-;-----------------------------------------------------------
-(test (run-val '(local
-              [(define o (object
-                          (field x 1)
-                          (field y 2)
-                          (method sum (z) (+ (get x) (+ (get y) z)))
-                          (method set-x (val) (set x val))
-                          (method get-y () (get y))))]
-            (seqn
-             (send o set-x  3)
-             (send o sum 3) ))) 8)
+
 ;-----------------------------------------------------------------
 
+
+
+      
+
+;------------------------------------------------------

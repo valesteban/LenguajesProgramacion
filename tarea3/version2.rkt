@@ -1,5 +1,4 @@
 #lang play
-#|
 <expr> ::= <num>
          | <id>
          | <bool>
@@ -246,26 +245,32 @@ Este método no crea un nuevo ambiente.
                    #t) defs)
        ;------>   ver el ambiente   ----->    new-env)]
        
-       (interp body new-env))]
+       (interp body new-env))
+       ;new-env)
+       ;(env-lookup 'o1 new-env) )
+       
+       ]
      [(object expre lista-field lista-metodos)
       ;se evalua primero expr (si esque es algo)
      ; (if (equal? 'NO expre) (void) (interp  expr   env) )
-      (def ambienteobj  (crear-ambiente-objeto expre lista-field lista-metodos empty-env )); (multi-extend-env '() '() empty-env)) ;creo un ambiente vacio para mi objeto
-      (objectV expre (cambia-box-fields lista-field env) lista-metodos ambienteobj)] ;creamos el objeto    
+      (def amb (multi-extend-env '() '() env)) ;creamos un nuevo ambiente para nuestro objeto
+      (extend-frame-env!
+       'yo (objectV expre (cambia-box-fields lista-field env) lista-metodos empty-env)amb)
+    
+      ;(def ambienteobj  (crear-ambiente-objeto expre lista-field lista-metodos empty-env )); (multi-extend-env '() '() empty-env)) ;creo un ambiente vacio para mi objeto
+      (objectV expre (cambia-box-fields lista-field env) lista-metodos amb)
+      
+      ] ;creamos el objeto    
  
     [(send nom nombremet lista-val-num)
      ;buscamos a el objeto en nuestro ambiente 
      (def (objectV expresion fieldss metodoss suamb) (env-lookup nom env))   ;(objectV )    
      ;buscamos el metodo dentro del objeto
      (def (method nombre listavalores-sinnum cuerpo)(buscar-met metodoss nombremet))  ;  (method sum () (+ 1 2))
-    ; (cond
-    ;   [              ]
-    ;   [              ])
 
+ 
 
      ;interpreto los valorres de la lista de argumentos
-     ;(nuestro ambiente tiene q tener los valores que desde antes son conocidos mas los de sus fields globales)
-     ;(interp cuerpo env)
      (def listayainterpreta (map (lambda(l ) (interp l env)) lista-val-num))
      ;agregamos los arg de a el ambiente
      (def new-env (multi-extend-env '() '() suamb) )
@@ -274,7 +279,10 @@ Este método no crea un nuevo ambiente.
                  #t) listayainterpreta listavalores-sinnum)
      ;--> mostrar el ambiente new-env --> new-env
      ;--> pregunto al hash un valor -->(hash-ref (aEnv-hash new-env) 'a )
-     (interp cuerpo new-env ) 
+     ;(interp cuerpo new-env )
+     new-env
+     
+
       ]
     [(get nombrefield)
      ;buscamos ese field en el ambiente del objeto que solo se tiene a si mismo
@@ -286,7 +294,7 @@ Este método no crea un nuevo ambiente.
     ]
     [(this 'yo)
      (def miobjetolindo(env-lookup 'yo env))
-     (unbox miobjetolindo)
+     miobjetolindo
      ]
     ))
      
@@ -305,13 +313,8 @@ Este método no crea un nuevo ambiente.
 ;buscar-field-suyo:: sym env -> val
 ;funcion que se mete en su ambiente encuentra a yo y luego busca   el field correspsondient
 (define (buscar-field-suyo nombrefield env)
-  (def (objectV expr listafield listametodos enb)(unbox(env-lookup 'yo env)))
+  (def (objectV expr listafield listametodos enb)(env-lookup 'yo env))
   (car (filter (lambda(n)(equal? (field-nombre n) nombrefield ) ) listafield)))
-
-;dame-el-field:: sym List[field] -> field
-;funcion que buscar un field por nombre y lo devuelve
-;(define (dame-el-field nombre listaf)
-;  (if empty?)
 
 ;cambia-box-fields:: fields -> List
 ;funcion que a el volor de un field lo convierte en una box 
@@ -383,4 +386,16 @@ valores de MiniScheme para clases y objetos
 
 
 ;-----------------------------------------------------------
+(run-val '(local
+              [(define o (object
+                          (field x [+ 2 1])
+                          (field y this)
+                          (field z [get x])
+                          (method get-x () (get x))
+                          (method get-z () (get z))
+                          (method get-y () (get y))))]
+           (send o get-x )))
 
+
+
+;-----------------------------------------------------------------
