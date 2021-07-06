@@ -42,7 +42,7 @@
   (lcal defs body)
   ;DESDE AQUÍ EMPIEZA LO DE OBJETOS
   (object exp list-fields list-methods)            ;  creamos el objeto
-  (this)              
+  (this yo)              
   (set id val)                ;  cambiar el valor de una varibale
   (get id)                    ;  acceder al valor de una de sus variables
   (send objeto metodo lista-valores)  ;  permite invocar a un método de un objeto dado, con 0 o más argumentos. (send o set-x (+ 1 3))
@@ -127,7 +127,8 @@ Este método no crea un nuevo ambiente.
 (define (parse s-expr)
   (match s-expr
     [(? number?) (num s-expr)]
-    [(? symbol?) (id s-expr)]
+    [(? symbol?)
+     (if (equal? s-expr 'this)(this 'yo)(id s-expr))]
     [(? boolean?) (bool s-expr)]
     [(list '* l r) (binop * (parse l) (parse r))]
     [(list '+ l r) (binop + (parse l) (parse r))]
@@ -146,7 +147,7 @@ Este método no crea un nuevo ambiente.
     ;------NUEVOS------------------------------------
     ;caso sin expresión
     [(list 'object ': expr list-valores-metodos ...)
-     (let ([ expresion (parse expr) ]
+     (let ([ expresion expr ]
            [ lista-mem (map parse-member list-valores-metodos ) ])
        (object expresion (lista-field lista-mem) (lista-method lista-mem))) ]
     ;caso con expresion
@@ -157,11 +158,13 @@ Este método no crea un nuevo ambiente.
     [(list 'get id) (get id)]
     [(list 'set id val) (set id val)]
     
-    [(list 'send obj met lista-v ...) (send obj met lista-v)]
+    [(list 'send obj met lista-v ...)
+     (send (if (equal? 'this obj )(parse obj)obj) met (map (lambda(arg)(parse arg) )lista-v))]
 
  
     [(list 'shallow-copy expr) (shallow-copy expr)]
     [(list 'deep-copy expr) (deep-copy expr)]
+ 
     
     ))
 
@@ -169,19 +172,22 @@ Este método no crea un nuevo ambiente.
 ;funcion que recibe una lista de fields y metodos y devuelve una lista con solo los fieds
 ;(lista-method (list (field 'x (num 1)) (field 'y (num 2)) (field 'z (num 55)) (method 'sum '(z) (num 1) ) (method 'set-x '(val)  (num 5))) )
 (define (lista-field lista-mem )
-  (let ([mem (car lista-mem ) ])
-    (if (field? mem )
-        (cond
-          [(> (length lista-mem) 1)  (cons mem (lista-field (cdr lista-mem))) ]
-          [else  (cons mem empty ) ])
-        
-        empty)))
+  (if (empty? lista-mem)
+      empty
+      (let ([mem (car lista-mem ) ])
+        (if (field? mem )
+            (cond
+              [(> (length lista-mem) 1)  (cons mem (lista-field (cdr lista-mem))) ]
+              [else  (cons mem empty ) ])
+     
+        empty))))
 
 
 
 ;lista-method:: List[Member] -> List[method]
 ;funcion que recibe una lista de fields y metodos y devuelve una lista con solo metodos    
-;(lista-method (list (field 'x (num 1)) (field 'y (num 2)) (field 'z (num 55)) (method 'sum '(z) (num 1) ) (method 'set-x '(val)  (num 5))) )
+;(lista-method (list (field 'x (num 1)) (field 'y (num 2)) (field 'z (num 55))
+;(method 'sum '(z) (num 1) ) (method 'set-x '(val)  (num 5))) )
 (define (lista-method lista-mem )
   (if (empty? lista-mem)
       empty
@@ -220,11 +226,10 @@ Este método no crea un nuevo ambiente.
   (match expr
     [(num n) (numV n)]
     [(bool b) (boolV b)]
-    [(binop f l r)
+    [(binop f l r)     
       (make-val (f (open-val (interp l env))
-                               (open-val (interp r env))))]
-    
-    [(unop f s) (make-val (f (open-val (interp s env))))]
+                   (open-val (interp r env))))]
+    [(unop f s) (make-val (f (open-val (interp s env))))] 
     [(my-if c t f)
      (def (boolV cnd) (interp c env))
      (if cnd
@@ -238,67 +243,133 @@ Este método no crea un nuevo ambiente.
      (let ([new-env (multi-extend-env '() '() env)])
        (for-each (λ(x)
                    (def (cons id val) (interp-def x new-env))
-                   (extend-frame-env! id   val  new-env)
+                   (extend-frame-env! id val  new-env)
                    #t) defs)
        ;------>   ver el ambiente   ----->    new-env)]
-       (interp body new-env))]
        
+       (interp body new-env))
+       ;new-env)
+       ;(env-lookup 'o1 new-env) )
        
-    
-     [(object expre lista-field lista-metodos); <------------------------------------------AQUI SE CREA EL OBJECTO
+       ]
+     [(object expre lista-field lista-metodos);<--------------OBJECT--------------------
       ;se evalua primero expr (si esque es algo)
-      (if (equal? 'NO expre) (void) (interp  expr   env) )
-      ;(def ambienteobj  (crear-ambiente-objeto expre lista-field lista-metodos empty-env )); (multi-extend-env '() '() empty-env)) ;creo un ambiente vacio para mi objeto
-      ;(objectV expre (cambia-box-fields lista-field env) lista-metodos ambienteobj)] ;creamos el objeto
-      (objectV expre lista-field lista-metodos empty-env)]
-  
+      ;(if (equal? 'NO expre) (void)(printf "funcionaaaa: ~a"  (env-lookup expre env)) )
       
+      (def amb (multi-extend-env '() '() env)) ;creamos un nuevo ambiente para nuestro objeto    
+      
+     ; (extend-frame-env! 'yo
+     ;                    (objectV expre (cambia-box-fields lista-field env) lista-metodos empty-env) amb)
+      (if (equal? 'NO expre) amb (extend-frame-env! 'papo (env-lookup expre env)  amb))
+      (def ambienteobj  (crear-ambiente-objeto expre lista-field lista-metodos amb ));
+      (objectV expre (cambia-box-fields lista-field env) lista-metodos ambienteobj)
+     ; (objectV expre (cambia-box-fields lista-field env) lista-metodos amb)
+      
+      ] ;creamos el objeto    
  
-    [(send nom nombremet lista-val-num)  ;<-----------------------------------------------OCUPAR METODO DE UN OBJETO
+    [(send nom nombremet lista-val-num);<----------------------SEND----------------------
      ;buscamos a el objeto en nuestro ambiente
-     (def (objectV expresion fieldss metodoss suamb)(env-lookup nom env) )   ;(objectV )    
+     (printf "nombre objeto:~a" nom)
+     (newline)
+     (if (this? nom)
+        (begin (printf "loq se busca:~a" (env-lookup   'yo env))(newline))
+         (printf "nada"))
+
+     (newline)
+     (def (objectV expresion fieldss metodoss suamb)
+       (if (this? nom)
+           (unbox (env-lookup   'yo env))
+           (if (box? (env-lookup nom env))
+               (unbox (env-lookup   nom env))
+               (env-lookup   nom env))))   ;(objectV )    
+     
+
      ;buscamos el metodo dentro del objeto
-     (def (method nombre listavalores-sinnum cuerpo)(buscar-met metodoss nombremet))  ;  (method sum () (+ 1 2))
-     ;agregamos los arg de a el ambiente  y a si mismo
+     (def (method nombre listavalores-sinnum cuerpo)
+       (let ([met (buscar-met metodoss nombremet) ])
+         (cond
+           [(empty?(method-cuerpo met))
+            (buscar-met (objectV-metodos (env-lookup 'papo suamb)) nombremet)] ;nombremet
+           [ else met          ])))
+       
+        ;  (method sum () (+ 1 2))
+     ;(if (empty? cuerpo) #f (def pp c) );buscapos metodo en el padre
+     (printf "objeto:~a" nom)
+     (newline)
+     (printf "nombre fun : ~a" nombre)
+     (newline)
+     (printf "cuerpo:~a" cuerpo)
+     (newline)
+
+
+     ;interpreto los valorres de la lista de argumentos
+     ;(printf "funcionaaaa: ~a"  (env-lookup expre env)) )
+     (def listayainterpreta (map (lambda(l ) (interp l env)) lista-val-num))
+     (display "-1-" )
+     (newline)
+     ;agregamos los arg de a el ambiente
      (def new-env (multi-extend-env '() '() suamb) )
-     (extend-frame-env! 'yo (objectV expresion fieldss metodoss suamb)  new-env) ; en su amabiente va a tener como se llama asi con ese valor ava  abuscarse a el ambiente global
      (for-each (λ(num ind)
                   (extend-frame-env! ind num  new-env) 
-                 #t) lista-val-num listavalores-sinnum)
+                 #t) listayainterpreta listavalores-sinnum)
+     (display "-2-" )
+     (newline)
+
+    
      ;--> mostrar el ambiente new-env --> new-env
      ;--> pregunto al hash un valor -->(hash-ref (aEnv-hash new-env) 'a )
 
+     (display "---------" )
+     (newline)
+   ;  new-env
+     ;por alguna razon no esta guardando el ambiente general
+      ; (cond
+      ;   [( set? cuerpo) (interp cuerpo new-env)];(interp cuerpo new-env)  ]
+      ;   [(this? nom) new-env]
+      ;   [(get? cuerpo ) (interp cuerpo new-env)]
+      ;   [(id? cuerpo)  'ppp]
+       ;  [else (interp cuerpo new-env)])
+        (interp cuerpo new-env)
 
-    (interp cuerpo new-env )
+         
 
-     ]
-    [(get nombrefield)
-     ;------VERSION DONDE BUSCA EL VALOR EN EL AMBIENTE
-     ;buscamos ese field en el ambiente del objeto que solo se tiene a si mismo
-     ;(def (field nombre boxito)(buscar-field-suyo nombrefield env)) ;(field 'y (box (numV 5)))
-     ;(unbox boxito)]
-     ;------VERSION DOND EBUSCA EL FIELD EN SI MISMO NOMAS
-     ;buscamos el objeto en el ambiente general
-     (def (objectV expresion fieldss metodoss suamb)(env-lookup 'yo env) )
-     (def (field ind val)(buscar-field-suyo nombrefield env)) ;  --> (field 'y (num 2))
-     (num-n val)  ]
-    [(set indi val)
-     (def (field ind val)(buscar-field-suyo indi env)) ; ---> (field ý (num 2))
-     (set! val (interp val env))]
-    ;(def valnum (env-lookup val env))
-    ;(set-box! (field-valor (buscar-field-suyo indi env)) valnum ) ;cambia el valor 
-    
-    ))
+      
+     ;new-env
      
 
-
+      ]
+    [(get nombrefield) ;<-------------------------------------GET--------- -------------
+     ;buscamos ese field en el ambiente del objeto que solo se tiene a si mismo
+     (def (field nombre boxito)(buscar-field-suyo nombrefield env)) ;(field 'y (box (numV 5)))
+     (printf "nombre field:~a" nombrefield )
+     (newline)
+     (printf "nombre field:~a"  (unbox boxito) )
+     (printf"-------------------------")
+     (newline)
+     (interp (unbox boxito) env )]
+    [(set indi val) ; <----------------------------------------SET----------------------
+    (def valnum (make-expr (env-lookup val env)))
+    (set-box! (field-valor (buscar-field-suyo indi env)) valnum ) ;cambia el valor
+    ]
+    [(this 'yo)
+     (def miobjetolindo(env-lookup 'yo env))
+     miobjetolindo
+     ] 
+    ))
+     
+       
     ; (aEnv-hash env)]
+
+
+;ayuda-box-objeto :: 
+;funcion que me ayuda que un object se tenga a si mismo en el ambiente
 
 ;crear-ambiente-objeto:: expr List[field] env -> objectV
 ;funcion que nos ayudara a crear un objecto que en su ambiente se tenga a si mismo
 (define (crear-ambiente-objeto expre lista-field lista-metodos env )
   (def box-val (box 'undefine))
-  (def nuevoamb (extend-frame-env! 'yo box-val  env))
+  (def nuevoamb (multi-extend-env '() '() env))
+  (extend-frame-env! 'yo box-val  nuevoamb)
   (def obj (objectV expre (cambia-box-fields lista-field env) lista-metodos nuevoamb))
   (set-box! box-val obj)
   nuevoamb)
@@ -306,13 +377,8 @@ Este método no crea un nuevo ambiente.
 ;buscar-field-suyo:: sym env -> val
 ;funcion que se mete en su ambiente encuentra a yo y luego busca   el field correspsondient
 (define (buscar-field-suyo nombrefield env)
-  (def (objectV expr listafield listametodos enb)(env-lookup 'yo env))
+  (def (objectV expr listafield listametodos enb)(unbox (env-lookup 'yo env)))
   (car (filter (lambda(n)(equal? (field-nombre n) nombrefield ) ) listafield)))
-
-;dame-el-field:: sym List[field] -> field
-;funcion que buscar un field por nombre y lo devuelve
-;(define (dame-el-field nombre listaf)
-;  (if empty?)
 
 ;cambia-box-fields:: fields -> List
 ;funcion que a el volor de un field lo convierte en una box 
@@ -320,10 +386,20 @@ Este método no crea un nuevo ambiente.
   (if (empty? fields )
       empty
       (let ([fielddd (car fields)])
-        (let ([ valor (interp  (field-valor fielddd ) env) ]
+        (let ([ valor  (field-valor fielddd ) ];no lo vamos a interpretar porque yo quise que fuese evaluacion perezosa
               [ nombre (field-nombre fielddd) ])
           (cons (field nombre (box valor) )   (cambia-box-fields (cdr fields) env)   )
     ))))
+
+;obtener-nombre:: Expr -> sym 
+;funcion que obtiene el nombre del id , en el fondo esto le va a dar el nombre del objeto que se busca
+;por lo talto se le puede pasar un id o un this para referirse a un objeto
+(define (obtener-nombre loqsea )
+  (match loqsea
+    [(id d) d]
+    [(this yos) yos ]
+    [else loqsea]
+    ))
     
 
 
@@ -331,7 +407,8 @@ Este método no crea un nuevo ambiente.
 ;funcion que busca un metodo dentro de un lista de metodos
 (define (buscar-met listametodos nombremetodo)
   (if (empty? listametodos)
-      (error "method not found")
+      ;(error "method not found")
+      (method 'nose empty empty)
       (let ([ metodito (car listametodos) ])
         (if (equal? nombremetodo (method-nombre metodito))
             metodito ;si lo encontro ---> lo retorna
@@ -339,30 +416,42 @@ Este método no crea un nuevo ambiente.
          )
         )
       )) 
-    
- 
+
+
      
 
-
+;;make-expr :: Val  -> expr
+; funcion que transforma uno de nuestro valores a una expresion
+(define (make-expr  s)
+  (match s
+    [(numV v) (num v) ]
+    [(boolV b) (bool b)]
+    ))
 
 ;; open-val :: Val -> Scheme Value
 (define (open-val v)
   (match v
     [(numV n) n]
     [(boolV b) b]
-    [ else v]
+    [(num n) n]
+  ;  [(bool b) b]
+  ;  [ else v]
     ))
 
 ;; make-val :: Scheme Value -> Val
 (define (make-val v)
   (match v
     [(? number?) (numV v)]
-    [(? boolean?) (boolV v)]
+    [(? boolean?) (boolV v)] 
+ ;   [(? num? ) (numV (num-n v))]
+ ;   [(? bool?) (boolV (bool-b v))]
+   
     ))
 
 ;; interp-def :: Def, Env -> Expr
 (define (interp-def a-def env)
   (match a-def
+    ;[(my-def id body) (cons id (interp body env))]))
     [(my-def id body) (cons id (interp body env))]))
 
 ;; run :: s-expr -> Val
@@ -382,17 +471,16 @@ valores de MiniScheme para clases y objetos
     [x x]))
 
 
-;-----------------------------------------------------------
+
+;-----------------------------------------------------------------
 (test (run-val '(local
-   [(define o (object
-               (field x 1)
-               (field y 2)
-               (method sum (a) (+ 100 a))
-               (method get-y () (get y))))
-    (define o2 (object
-               (field x 1)
-               (field y 2)
-               (method sum (b) (+ 100 b))
-               (method get-y () (get y))))]
-   
-   (send o2 sum 55 ))) 155)
+                    ([define x (object
+                                (field z 3)
+                                (method get () (get z)))]
+                     [define y (object : x)])
+                  (send y get)))
+      3)
+
+;------------------------------------------------------
+
+

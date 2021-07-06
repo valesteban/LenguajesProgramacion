@@ -1,5 +1,5 @@
 #lang play
-(require "main.rkt")
+(require "version2.rkt")
 (print-only-errors)
 
 
@@ -49,7 +49,7 @@
           (send o foo)))
       42)
 
-#;(test (run-val '(local
+(test (run-val '(local
               [(define smart-computer (object
                                        (method secret? (something) 42)))
                (define everything (object))
@@ -57,7 +57,7 @@
                (send oracle secret? everything)))
       42)
 
-#;(run-val '(local
+(run-val '(local
               [(define seller (object
                                (method multiplier () 1)
                                (method price (item-number)
@@ -66,7 +66,7 @@
                                       (method multiplier () 2)))]
                (send broker price 3)))
 
-#;(test (run-val '(local
+(test (run-val '(local
                     ([define x (object
                                 (field z 3)
                                 (method get () (get z)))]
@@ -165,28 +165,36 @@
                           (method get-z () (get z))
                           (method get-y () (get y))))]
            (send o get-z ))) 3)
+(run-val
+ '(local ([define o (object (field y 10)
+                            (field x (get y))
+                            (method set-y (a)(set y a))
+                            (method get-x () (get x)))])
+    (seqn
+     (send o set-y 4)
+     (send o get-x)
+     )))
 
- (test (run-val '(local
-              [(define o (object
-                          (field x [+ 2 1])
-                          (field y this)
-                          (field z [get x])
-                          (method get-x () (get x))
-                          (method get-z () (get z))
-                          (method get-y () (get y))))]
-           (send o get-y )))
-       (objectV
- 'NO
- (list
-  (field 'x (box (binop + (num 2) (num 1))))
-  (field 'y (box (this 'yo)))
-  (field 'z (box (get 'x))))
- (list
-  (method 'get-x '() (get 'x))
-  (method 'get-z '() (get 'z))
-  (method 'get-y '() (get 'y)))
- (mtEnv))
-)
+ ;(test (run-val '(local
+ ;             [(define o (object
+ ;                         (field x [+ 2 1])
+ ;                         (field y this)
+ ;                         (field z [get x])
+ ;                         (method get-x () (get x))
+ ;                         (method get-z () (get z))
+ ;                         (method get-y () (get y))))]
+ ;          (send o get-y )))
+ ;      (objectV
+ ;'NO
+ ;(list
+ ; (field 'x (box (binop + (num 2) (num 1))))
+ ; (field 'y (box (this 'yo)))
+ ; (field 'z (box (get 'x))))
+ ;(list
+ ; (method 'get-x '() (get 'x))
+ ; (method 'get-z '() (get 'z))
+ ; (method 'get-y '() (get 'y)))
+ ;(mtEnv)))
 
 
 
@@ -288,3 +296,47 @@
             (seqn
              (send o set-x  3)
              (send o sum 3) ))) 8)
+
+
+(test (run-val'(local
+             [(define o (object
+                         (field x 2)
+                         (field y (send this get-x))
+                         (method get-x () (get x))
+                         (method get-y () (get y))
+                         (method set-x (v) (set x v))
+
+                ))]
+             
+             (seqn
+              (send o set-x 10)
+              (send o get-y)))) 10)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;                                   DELEGACIÓN
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+(test (run-val '(local
+            ([define x (object
+                        (field f 3)
+                        (method mil () 1000 )
+                        (method sum () (+ 1 2)))]
+             [define y (object : x  
+                        (field f 5)
+                        (method sum () (+ 2 3 ))
+                        (method cien () 100))])
+            (send y mil))) 1000)
+
+
+(test (run-val '(local
+            [(define seller (object
+                             (method multiplier () 1)
+                             (method price (item-number)
+                                     (* item-number (send this multiplier)))))
+             (define broker (object : seller
+                                    (method multiplier () 2)))]
+            (send broker price 3))) 6)
+
+
+
+

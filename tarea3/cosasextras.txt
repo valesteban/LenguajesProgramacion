@@ -1,3 +1,6 @@
+tengo un problema con la delegacion con el ambiente pues el this no lo encuentras
+
+
 FUNCIONES
 
 (define (env-lookup x env)   ---> BUSCAR EN EL AMBIENTE
@@ -10,75 +13,47 @@ FUNCIONES
 
 
 
+;; Member
+(deftype Member
+  (field nombre valor)                        ;valor sera una box para d eesa forma manejar la mutabilidad de estos
+  (method nombre lista-valores cuerpo  ))
+
+;; values
+(deftype Val
+  (numV n)
+  (boolV b)
+  (objectV exp fields metodos amb))
+
+(deftype Def
+  (my-def id expr))
+
+(deftype Expr
+  (num n)
+  (bool b)
+  (id s)
+  (binop f l r)
+  (unop f s)
+  (my-if c tb fb)
+  (seqn expr1 expr2)
+  (lcal defs body)
+  ;DESDE AQUÍ EMPIEZA LO DE OBJETOS
+  (object exp list-fields list-methods)            ;  creamos el objeto
+  (this yo)              
+  (set id val)                ;  cambiar el valor de una varibale
+  (get id)                    ;  acceder al valor de una de sus variables
+  (send objeto metodo lista-valores)  ;  permite invocar a un método de un objeto dado, con 0 o más argumentos. (send o set-x (+ 1 3))
+  (shallow-copy expr)
+  (deep-copy expresion)
+  )
+
+(objectV exp fields metodos amb)
 
 
-
-
-
-
----OBJETOS SIMPLES-------------------------------------
-    
- (parse '(object
-          (field y 2)))
-
- (parse '(object
-          (field x 1)
-          (field y 2)))
-
- (parse '(object
-          (method rest (e) (- e 1))
-          ))
-
- (parse '(object
-          (method sum (z) (+ z 2))
-          (method rest (e) (- e 1) )
-          ))
-
-
-
-(parse '(local
-              [(define o (object
-                          (field x 1)
-                          (field y 2)
-                          (method estacosa () this )))]
-           (send o estacosa )))
-
-
-
-
-----------------------------------------------------------------------------------------
-
-(lcal
- (list (my-def 'smart-computer (object 'NO
-                                       '()
-                                       (list (method 'secret? '(something) (num 42)))))
-       (my-def 'everything (object 'NO
-                                   '()
-                                   '()))
-       (my-def 'oracle (object (id 'smart-computer)
-                               '()
-                               '())))
- (send 'oracle 'secret? (list (id 'everything))))
-
-
-
------------------------------------------------------------------------------
-
-(aEnv 
- (hash 'o1 (objectV 'NO
-                    (list
-                     (field 'z (box (numV 4)))
-                     (field 'w (box (numV 5))))
-                 #0=(list
-                     (method 'amb '() (binop #<procedure:+> (num 100) (num 1))))
-                 #1=(aEnv (hash 'yo (box (objectV 'NO
-                                                  (list (field 'z (box (numV 4)))
-                                                  (field 'w (box (numV 5))))
-                                                  #0##1#)))
-                          #2=(mtEnv)))
-       'o2 (objectV 'NO
-                    (list
-                     (field 'x (box (numV 1)))
-                     (field 'y (box (numV 2))))
-                    #3=(list (method 'amb '() (id 'aaa)))
-                    #4=(aEnv
+;obtener-nombre:: Expr -> sym 
+;funcion que obtiene el nombre del id , en el fondo esto le va a dar el nombre del objeto que se busca
+;por lo talto se le puede pasar un id o un this para referirse a un objeto
+(define (obtener-nombre loqsea )
+  (match loqsea
+    [(id d) d]
+    [(this yos) yos ]
+    ))
